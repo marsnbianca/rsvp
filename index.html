@@ -2,767 +2,915 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>RSVP</title>
   <style>
-    :root{
-      --bg:#0b0c10;
-      --panel:#11131a;
-      --text:#e9eef7;
-      --muted:#aab3c5;
-      --line:#23283a;
-      --accent:#7aa7ff;
-      --ok:#35d07f;
-      --warn:#ffcc66;
-      --bad:#ff6b6b;
-      --shadow: 0 10px 40px rgba(0,0,0,.45);
-      --radius: 16px;
+    :root {
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #666666;
+      --line: rgba(0,0,0,0.12);
+      --btn: #111111;
+      --btnfg: #ffffff;
+      --btn2: #f2f2f2;
+      --err: #b00020;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: radial-gradient(1200px 600px at 20% -10%, rgba(122,167,255,.25), transparent 55%),
-                  radial-gradient(900px 500px at 110% 10%, rgba(53,208,127,.18), transparent 60%),
-                  var(--bg);
-      color:var(--text);
-      min-height:100dvh;
-      display:flex;
-      justify-content:center;
-      padding:28px 16px 56px;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: transparent;
+      color: var(--fg);
     }
-    .wrap{width:min(980px, 100%)}
-    header{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
-    header h1{font-size: clamp(22px, 3vw, 30px); margin:0;}
-    header p{margin:0;color:var(--muted);line-height:1.45}
-
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    .overlay {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .modal {
+      width: min(520px, 100%);
+      background: var(--bg);
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .tabs{
-      display:flex; gap:8px; padding:12px;
-      border-bottom:1px solid var(--line);
-      background: rgba(255,255,255,.01);
-      flex-wrap:wrap;
-    }
-    .tab{
-      appearance:none;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius: 999px;
-      cursor:pointer;
-      font-weight:600;
-    }
-    .tab[aria-selected="true"]{
-      border-color: rgba(122,167,255,.55);
-      background: rgba(122,167,255,.14);
-    }
-    .content{padding:16px;}
-    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
-    @media (max-width: 760px){ .grid{grid-template-columns: 1fr} }
-
-    .field{display:flex; flex-direction:column; gap:8px;}
-    label{font-size:13px;color:var(--muted)}
-    input, select, textarea{
-      width:100%;
-      padding:12px;
-      background: rgba(255,255,255,.02);
-      border:1px solid var(--line);
-      border-radius: 12px;
-      color:var(--text);
-      outline:none;
-    }
-    textarea{min-height:96px;resize:vertical}
-    input:focus, select:focus, textarea:focus{
-      border-color: rgba(122,167,255,.7);
-      box-shadow: 0 0 0 3px rgba(122,167,255,.15);
-    }
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px;}
-    .btn{
-      appearance:none;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--text);
-      padding:12px 14px;
-      border-radius: 14px;
-      cursor:pointer;
-      font-weight:700;
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-    }
-    .btn.primary{border-color: rgba(122,167,255,.6); background: rgba(122,167,255,.16);}
-    .btn.ok{border-color: rgba(53,208,127,.6); background: rgba(53,208,127,.16);}
-    .btn:disabled{opacity:.55; cursor:not-allowed;}
-    .hint{color:var(--muted); font-size:13px; line-height:1.45}
-
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      color:var(--muted);
-      font-size:13px;
-      margin-top:10px;
-      width:fit-content;
-    }
-    .pill strong{color:var(--text)}
-
-    .status{
-      margin-top:12px;
-      padding:12px;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      color:var(--muted);
-      line-height:1.45;
-      display:none;
-    }
-    .status.show{display:block}
-    .status.ok{border-color: rgba(53,208,127,.45); background: rgba(53,208,127,.10); color:#c8ffe2}
-    .status.warn{border-color: rgba(255,204,102,.45); background: rgba(255,204,102,.10); color:#fff1cc}
-    .status.bad{border-color: rgba(255,107,107,.50); background: rgba(255,107,107,.10); color:#ffe0e0}
-
-    .divider{height:1px;background:var(--line);margin:14px 0}
-    .small{font-size:12px;color:var(--muted)}
-
-    /* Modal */
-    .overlay{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.65);
-      backdrop-filter: blur(8px);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index: 999;
-    }
-    .overlay.show{display:flex}
-    .modal{
-      width:min(720px, 100%);
-      background: var(--panel);
-      border:1px solid var(--line);
       border-radius: 18px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.12);
+      overflow: hidden;
     }
-    .modal header{padding:14px 16px; border-bottom:1px solid var(--line); background: rgba(255,255,255,.01);}
-    .modal header h2{margin:0; font-size: 18px;}
-    .modal .body{
-      padding:16px;
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-      align-items:start;
+    .header {
+      padding: 18px 18px 10px 18px;
+      border-bottom: 1px solid var(--line);
     }
-    @media (max-width: 760px){
-      .modal .body{grid-template-columns: 1fr}
+    .title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 650;
     }
-    .list{display:flex; flex-direction:column; gap:10px;}
-    .choice{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      border-radius: 14px;
-      padding:12px;
-      cursor:pointer;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
+    .sub {
+      margin: 8px 0 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.35;
     }
-    .choice:hover{border-color: rgba(122,167,255,.55)}
-    .choice .top{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;}
-    .choice .name{font-weight:800}
-    .choice .meta{color:var(--muted); font-size:13px}
-    .modal .side{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.02);
-      border-radius: 14px;
-      padding:12px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.45;
+    .content { padding: 16px 18px 18px 18px; }
+    .row { display: grid; gap: 10px; }
+    label { font-size: 13px; color: var(--muted); }
+    input[type="text"], input[type="tel"], textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 12px;
+      font-size: 15px;
+      outline: none;
+      background: #fff;
+      color: var(--fg);
     }
-    .modal .footer{
-      padding:12px 16px;
-      border-top:1px solid var(--line);
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      flex-wrap:wrap;
+    textarea { min-height: 90px; resize: vertical; }
+    .btns { display: flex; gap: 10px; margin-top: 14px; }
+    button {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .primary { background: var(--btn); color: var(--btnfg); }
+    .secondary { background: var(--btn2); color: var(--fg); border-color: var(--line); }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .error { color: var(--err); font-size: 13px; line-height: 1.35; }
+
+    .list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .item:last-child { border-bottom: none; }
+    .item:hover { background: rgba(0,0,0,0.03); }
+    .itemName { font-size: 15px; }
+    .tag { font-size: 12px; color: var(--muted); }
+
+    .pillRow { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .pill.active {
+      background: rgba(0,0,0,0.06);
+      border-color: rgba(0,0,0,0.18);
     }
 
-    .attendeeList{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
+    .inline {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .loading {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(0,0,0,0.25);
+      animation: pulse 1s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: .15s; }
+    .dot:nth-child(3) { animation-delay: .3s; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.9); opacity: 0.45; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    .closeWrap {
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(0,0,0,0.02);
+    }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <header>
-      <h1>RSVP</h1>
-      <p>Search your name, select your invite, then RSVP.</p>
-    </header>
-
-    <section class="card">
-      <nav class="tabs" role="tablist" aria-label="RSVP tabs">
-        <button class="tab" id="tab-find" role="tab" aria-selected="true" aria-controls="panel-find">Find your invite</button>
-        <button class="tab" id="tab-rsvp" role="tab" aria-selected="false" aria-controls="panel-rsvp" disabled>RSVP</button>
-        <button class="tab" id="tab-help" role="tab" aria-selected="false" aria-controls="panel-help">Help</button>
-      </nav>
-
-      <div class="content">
-        <!-- FIND -->
-        <div id="panel-find" role="tabpanel" aria-labelledby="tab-find">
-          <div class="grid">
-            <div class="field">
-              <label for="qName">Name on invite</label>
-              <input id="qName" autocomplete="name" placeholder="e.g., John Davis" />
-              <div class="hint">Type your name as it appears on the invite.</div>
-            </div>
-
-            <div class="field">
-              <label>&nbsp;</label>
-              <button class="btn primary" id="btnFind">Find my invite</button>
-              <div class="hint">If multiple matches appear, you will select the right one.</div>
-            </div>
-          </div>
-
-          <div id="findStatus" class="status" aria-live="polite"></div>
-
-          <div class="pill" id="selectedPill" style="display:none;">
-            <span>Selected:</span> <strong id="selectedName"></strong>
-          </div>
-
-          <div class="small" style="margin-top:12px;">Powered by Google Sheets</div>
-        </div>
-
-        <!-- RSVP -->
-        <div id="panel-rsvp" role="tabpanel" aria-labelledby="tab-rsvp" hidden>
-          <div id="invitePill" class="pill" style="display:none;">
-            <span>Invite:</span> <strong id="invitePillText"></strong>
-          </div>
-
-          <div id="lockoutBox" class="status warn" style="display:none;"></div>
-
-          <div class="divider"></div>
-
-          <div class="grid">
-            <div class="field">
-              <label for="attending">Will you be attending?</label>
-              <select id="attending">
-                <option value="">Select one</option>
-                <option value="yes">Yes, happily</option>
-                <option value="no">No, sadly cannot</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="attendingCount">Number attending in your party</label>
-              <select id="attendingCount"></select>
-              <div class="hint" id="seatsHint"></div>
-            </div>
-          </div>
-
-          <div class="grid" style="margin-top:14px;">
-            <div class="field">
-              <label for="phone">Phone number</label>
-              <input id="phone" placeholder="+1 250 123 4567" />
-              <div class="hint">Required if attending “Yes”.</div>
-            </div>
-            <div class="field">
-              <label for="relationship">Relationship to the couple</label>
-              <input id="relationship" placeholder="friend, coworker, cousin" />
-              <div class="hint">Required if attending “Yes”.</div>
-            </div>
-          </div>
-
-          <div class="field" style="margin-top:14px;">
-            <label for="transportation">Transportation</label>
-            <select id="transportation">
-              <option value="">Select</option>
-              <option value="Car">Car</option>
-              <option value="Motorbike">Motorbike</option>
-              <option value="Commute">Commute / Grab / Taxi</option>
-              <option value="Other">Other</option>
-            </select>
-            <div class="hint">Required if attending “Yes”.</div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div id="attendeeBox" style="display:none;">
-            <div style="font-weight:800;">Attendee full names</div>
-            <div class="hint">Enter the full name for each person attending.</div>
-            <div class="attendeeList" id="attendeeList"></div>
-          </div>
-
-          <div class="field" style="margin-top:14px;">
-            <label for="notes">Notes (optional)</label>
-            <textarea id="notes" placeholder="Any notes you want to share"></textarea>
-          </div>
-
-          <div class="row">
-            <button class="btn ok" id="btnSubmit">Submit RSVP</button>
-            <button class="btn" id="btnBack" type="button">Back</button>
-          </div>
-
-          <div id="rsvpStatus" class="status" aria-live="polite"></div>
-        </div>
-
-        <!-- HELP -->
-        <div id="panel-help" role="tabpanel" aria-labelledby="tab-help" hidden>
-          <p class="hint" style="margin-top:0;">
-            If you cannot find your invite:
-          </p>
-          <ul class="hint">
-            <li>Try the name exactly as it appears on the invite.</li>
-            <li>Try first name + last name.</li>
-            <li>If you still cannot find it, contact the couple.</li>
-          </ul>
-        </div>
+  <div class="overlay">
+    <div class="modal" id="modal">
+      <div class="header">
+        <h1 class="title" id="title">Find your invite</h1>
+        <p class="sub" id="subtitle">Type the name on the invitation, then pick your match to continue.</p>
       </div>
-    </section>
-  </div>
-
-  <!-- MULTI MATCH MODAL -->
-  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <header>
-        <h2 id="modalTitle">Multiple matches found</h2>
-        <p class="hint" style="margin:6px 0 0;">Select the entry that matches your invite.</p>
-      </header>
-      <div class="body">
-        <div class="list" id="choices"></div>
-        <aside class="side">
-          <div style="font-weight:800;color:var(--text);margin-bottom:6px;">How to choose</div>
-          <div>Pick the one that matches your household or invite name.</div>
-          <div class="divider"></div>
-          <div class="small">This pop-up stacks nicely on mobile.</div>
-        </aside>
-      </div>
-      <div class="footer">
-        <button class="btn" id="btnModalClose" type="button">Cancel</button>
+      <div class="content" id="content"></div>
+      <div class="closeWrap" id="closeWrap" style="display:none;">
+        <button class="secondary" id="closeBtn" type="button">Close</button>
       </div>
     </div>
   </div>
 
   <script>
     const CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec"
+      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
+      maxSeatsCap: 4
     };
+
+    const state = {
+      step: "find",
+      loading: false,
+      error: "",
+      contactLine: "",
+      nameQuery: "",
+      matches: [],
+      selected: null, // from find: {invite_id, invite_name, max_seats, status, locked}
+      invite: null,   // from get
+      attending: null, // "yes" | "no"
+      attendingCount: 1,
+      extraNames: [], // attendee #2..#N
+      transportation: null, // "Yes" | "No"
+      phoneDigits: "",
+      notes: ""
+    };
+
+    const elTitle = document.getElementById("title");
+    const elSubtitle = document.getElementById("subtitle");
+    const elContent = document.getElementById("content");
+    const elCloseWrap = document.getElementById("closeWrap");
+    const elCloseBtn = document.getElementById("closeBtn");
+
+    elCloseBtn.addEventListener("click", closeModal);
+
+    function render() {
+      elContent.innerHTML = "";
+
+      if (state.step === "find") return renderFind();
+      if (state.step === "pick") return renderPick();
+      if (state.step === "coming") return renderComing();
+      if (state.step === "transpo") return renderTranspo();
+      if (state.step === "phone") return renderPhone();
+      if (state.step === "notes") return renderNotes();
+      if (state.step === "locked") return renderLocked();
+      if (state.step === "thanks") return renderThanks();
+    }
+
+    function setHeader(title, subtitle) {
+      elTitle.textContent = title;
+      elSubtitle.textContent = subtitle || "";
+    }
+
+    function loadingRow() {
+      const div = document.createElement("div");
+      div.className = "loading";
+      div.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Loading…</span>`;
+      return div;
+    }
 
     async function api(action, payload) {
       const res = await fetch(CONFIG.webAppUrl, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoid preflight
-        body: JSON.stringify({ action, ...payload })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...(payload || {}) })
       });
       const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); }
-      catch { throw new Error("Non-JSON response from Apps Script."); }
-      return data;
+      try { return JSON.parse(text); } catch (e) { return { ok: false, error: "Invalid server response." }; }
     }
 
-    const state = {
-      invite_id: null,
-      invite: null,
-      matches: []
-    };
+    /* ---------------- FIND ---------------- */
 
-    const els = {
-      tabFind: document.getElementById("tab-find"),
-      tabRsvp: document.getElementById("tab-rsvp"),
-      tabHelp: document.getElementById("tab-help"),
-      panelFind: document.getElementById("panel-find"),
-      panelRsvp: document.getElementById("panel-rsvp"),
-      panelHelp: document.getElementById("panel-help"),
+    function renderFind() {
+      setHeader("Find your invite", "Type the name on the invitation, then pick your match to continue.");
+      elCloseWrap.style.display = "none";
 
-      qName: document.getElementById("qName"),
-      btnFind: document.getElementById("btnFind"),
-      findStatus: document.getElementById("findStatus"),
+      const wrap = document.createElement("div");
+      wrap.className = "row";
 
-      selectedPill: document.getElementById("selectedPill"),
-      selectedName: document.getElementById("selectedName"),
+      const label = document.createElement("label");
+      label.textContent = "Guest name";
+      wrap.appendChild(label);
 
-      invitePill: document.getElementById("invitePill"),
-      invitePillText: document.getElementById("invitePillText"),
-      lockoutBox: document.getElementById("lockoutBox"),
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Example: Maria Santos";
+      input.value = state.nameQuery;
+      input.autocomplete = "name";
+      input.addEventListener("input", (e) => state.nameQuery = e.target.value);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
+      wrap.appendChild(input);
 
-      attending: document.getElementById("attending"),
-      attendingCount: document.getElementById("attendingCount"),
-      seatsHint: document.getElementById("seatsHint"),
-      phone: document.getElementById("phone"),
-      relationship: document.getElementById("relationship"),
-      transportation: document.getElementById("transportation"),
-      notes: document.getElementById("notes"),
+      if (state.loading) wrap.appendChild(loadingRow());
 
-      attendeeBox: document.getElementById("attendeeBox"),
-      attendeeList: document.getElementById("attendeeList"),
+      if (state.error) wrap.appendChild(errorEl(state.error));
 
-      btnSubmit: document.getElementById("btnSubmit"),
-      btnBack: document.getElementById("btnBack"),
-      rsvpStatus: document.getElementById("rsvpStatus"),
+      const btns = document.createElement("div");
+      btns.className = "btns";
 
-      overlay: document.getElementById("overlay"),
-      choices: document.getElementById("choices"),
-      btnModalClose: document.getElementById("btnModalClose"),
-    };
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.type = "button";
+      btn.textContent = "Find invite";
+      btn.disabled = state.loading;
+      btn.addEventListener("click", onFind);
 
-    function setStatus(el, kind, msg) {
-      el.className = "status show";
-      if (kind) el.classList.add(kind);
-      el.textContent = msg;
-    }
-    function clearStatus(el) {
-      el.className = "status";
-      el.textContent = "";
-    }
-
-    function switchTab(tab) {
-      const map = [
-        { tab: els.tabFind, panel: els.panelFind },
-        { tab: els.tabRsvp, panel: els.panelRsvp },
-        { tab: els.tabHelp, panel: els.panelHelp }
-      ];
-      map.forEach(x => {
-        const active = x.tab === tab;
-        x.tab.setAttribute("aria-selected", active ? "true" : "false");
-        x.panel.hidden = !active;
-      });
-    }
-
-    function openModal(matches) {
-      els.choices.innerHTML = "";
-      matches.forEach(m => {
-        const item = document.createElement("div");
-        item.className = "choice";
-        item.tabIndex = 0;
-
-        const top = document.createElement("div");
-        top.className = "top";
-
-        const name = document.createElement("div");
-        name.className = "name";
-        name.textContent = m.invite_name || "Invite";
-
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        const bits = [];
-        if (Number.isFinite(m.max_seats)) bits.push(`Max seats: ${m.max_seats}`);
-        if (m.locked) bits.push("Locked");
-        if (m.status) bits.push(m.status);
-        meta.textContent = bits.join(" • ");
-
-        top.appendChild(name);
-        top.appendChild(meta);
-
-        item.appendChild(top);
-
-        item.addEventListener("click", () => chooseInvite(m.invite_id));
-        item.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") chooseInvite(m.invite_id);
-        });
-
-        els.choices.appendChild(item);
+      const clear = document.createElement("button");
+      clear.className = "secondary";
+      clear.type = "button";
+      clear.textContent = "Clear";
+      clear.disabled = state.loading;
+      clear.addEventListener("click", () => {
+        state.nameQuery = "";
+        state.matches = [];
+        state.error = "";
+        render();
+        input.focus();
       });
 
-      els.overlay.classList.add("show");
-      setTimeout(() => {
-        const first = els.choices.querySelector(".choice");
-        if (first) first.focus();
-      }, 0);
+      btns.appendChild(btn);
+      btns.appendChild(clear);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+      setTimeout(() => input.focus(), 0);
     }
 
-    function closeModal() {
-      els.overlay.classList.remove("show");
-    }
+    async function onFind() {
+      state.error = "";
+      const name = (state.nameQuery || "").trim();
+      if (!name) { state.error = "Please type a name first."; return render(); }
 
-    function fillCount(maxSeats) {
-      els.attendingCount.innerHTML = "";
-      const opt0 = document.createElement("option");
-      opt0.value = "";
-      opt0.textContent = "Select";
-      els.attendingCount.appendChild(opt0);
-
-      const n = Math.max(1, Number(maxSeats || 1));
-      for (let i = 1; i <= n; i++) {
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.textContent = String(i);
-        els.attendingCount.appendChild(opt);
-      }
-      els.seatsHint.textContent = `Your invite allows up to ${n} seat${n === 1 ? "" : "s"}.`;
-    }
-
-    function rebuildAttendeeInputs(count) {
-      els.attendeeList.innerHTML = "";
-      if (!count || count < 1) {
-        els.attendeeBox.style.display = "none";
-        return;
-      }
-      els.attendeeBox.style.display = "block";
-      for (let i = 0; i < count; i++) {
-        const wrap = document.createElement("div");
-        wrap.className = "field";
-
-        const label = document.createElement("label");
-        label.textContent = `Attendee ${i + 1} full name`;
-
-        const input = document.createElement("input");
-        input.placeholder = "Full name";
-        input.dataset.idx = String(i);
-
-        wrap.appendChild(label);
-        wrap.appendChild(input);
-        els.attendeeList.appendChild(wrap);
-      }
-    }
-
-    function setLockedUI(locked, message) {
-      if (locked) {
-        els.lockoutBox.style.display = "block";
-        els.lockoutBox.textContent = message || "RSVP already received and locked.";
-      } else {
-        els.lockoutBox.style.display = "none";
-        els.lockoutBox.textContent = "";
-      }
-      [
-        els.attending, els.attendingCount, els.phone, els.relationship,
-        els.transportation, els.notes, els.btnSubmit
-      ].forEach(x => x.disabled = !!locked);
-
-      const inputs = els.attendeeList.querySelectorAll("input");
-      inputs.forEach(i => i.disabled = !!locked);
-    }
-
-    async function handleFind() {
-      clearStatus(els.findStatus);
-      clearStatus(els.rsvpStatus);
-
-      if (!CONFIG.webAppUrl || CONFIG.webAppUrl.includes("PASTE_YOUR")) {
-        setStatus(els.findStatus, "warn", "Config needed: paste your Apps Script Web App URL into CONFIG.webAppUrl.");
-        return;
-      }
-
-      const name = (els.qName.value || "").trim();
-      if (!name) {
-        setStatus(els.findStatus, "warn", "Please enter the name on the invite.");
-        return;
-      }
-
-      els.btnFind.disabled = true;
-      els.btnFind.textContent = "Searching...";
+      state.loading = true;
+      render();
 
       try {
         const data = await api("find", { name });
-        if (!data.ok) {
-          setStatus(els.findStatus, "bad", data.error || "Search failed.");
-          return;
+        state.loading = false;
+
+        if (!data || !data.ok) throw new Error(data && data.error ? data.error : "Search failed.");
+        state.contactLine = data.contact_line || "";
+        state.matches = Array.isArray(data.matches) ? data.matches : [];
+
+        if (state.matches.length === 0) {
+          state.error = "No match found. Try a different spelling, or include a first and last name.";
+          return render();
         }
 
-        const matches = Array.isArray(data.matches) ? data.matches : [];
-        state.matches = matches;
-
-        if (matches.length === 0) {
-          setStatus(els.findStatus, "warn", "No match found. Try a different spelling.");
-          return;
-        }
-
-        if (matches.length === 1) {
-          await chooseInvite(matches[0].invite_id);
-          return;
-        }
-
-        setStatus(els.findStatus, "ok", `We found ${matches.length} matches. Please select the correct one.`);
-        openModal(matches);
-
+        state.step = "pick";
+        render();
       } catch (err) {
-        setStatus(els.findStatus, "bad", err.message || "Something went wrong.");
-      } finally {
-        els.btnFind.disabled = false;
-        els.btnFind.textContent = "Find my invite";
+        state.loading = false;
+        state.error = String(err && err.message ? err.message : err);
+        render();
       }
     }
 
-    async function chooseInvite(invite_id) {
-      closeModal();
-      clearStatus(els.findStatus);
-      clearStatus(els.rsvpStatus);
+    /* ---------------- PICK ---------------- */
+
+    function renderPick() {
+      setHeader("Verify your name", "Select your name to continue.");
+      elCloseWrap.style.display = "none";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+
+      const list = document.createElement("div");
+      list.className = "list";
+
+      state.matches.forEach((m) => {
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const left = document.createElement("div");
+        left.innerHTML = `<div class="itemName"></div><div class="tag"></div>`;
+        left.querySelector(".itemName").textContent = m.invite_name || "Unnamed guest";
+        const seats = Math.min(Number(m.max_seats || 1), CONFIG.maxSeatsCap);
+        left.querySelector(".tag").textContent = seats > 1 ? `Party of ${seats}` : "Single invite";
+
+        const right = document.createElement("div");
+        right.className = "tag";
+        right.textContent = "Select";
+
+        item.appendChild(left);
+        item.appendChild(right);
+
+        item.addEventListener("click", () => onPick(m));
+        list.appendChild(item);
+      });
+
+      wrap.appendChild(list);
+
+      if (state.loading) wrap.appendChild(loadingRow());
+      if (state.error) wrap.appendChild(errorEl(state.error));
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const back = document.createElement("button");
+      back.className = "secondary";
+      back.type = "button";
+      back.textContent = "Back";
+      back.disabled = state.loading;
+      back.addEventListener("click", () => {
+        state.error = "";
+        state.step = "find";
+        render();
+      });
+
+      btns.appendChild(back);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    async function onPick(m) {
+      state.error = "";
+      state.selected = m;
+      state.loading = true;
+      render();
 
       try {
-        const data = await api("get", { invite_id });
-        if (!data.ok || !data.invite) {
-          setStatus(els.findStatus, "bad", data.error || "Could not load invite.");
-          return;
+        const data = await api("get", { invite_id: m.invite_id });
+        state.loading = false;
+
+        if (!data || !data.ok) throw new Error(data && data.error ? data.error : "Could not load invite.");
+
+        state.contactLine = data.contact_line || state.contactLine || "";
+        state.invite = data.invite || null;
+
+        if (!state.invite) throw new Error("Missing invite data.");
+
+        if (state.invite.locked) {
+          state.step = "locked";
+          return render();
         }
 
-        state.invite_id = data.invite.invite_id;
-        state.invite = data.invite;
+        // reset answers
+        state.attending = null;
+        state.attendingCount = 1;
+        state.extraNames = [];
+        state.transportation = null;
+        state.phoneDigits = "";
+        state.notes = "";
 
-        els.selectedPill.style.display = "inline-flex";
-        els.selectedName.textContent = data.invite.invite_name || "Invite selected";
-
-        els.tabRsvp.disabled = false;
-
-        els.invitePill.style.display = "inline-flex";
-        els.invitePillText.textContent = data.invite.invite_name || "Invite";
-
-        fillCount(data.invite.max_seats);
-
-        // Prefill existing values (if any)
-        const ex = data.invite.existing || {};
-        els.notes.value = ex.notes || "";
-        els.phone.value = ex.phone || "";
-        els.relationship.value = ex.relationship || "";
-        els.transportation.value = ex.transportation || "";
-
-        // If already locked, block editing
-        if (data.invite.locked) {
-          setLockedUI(true, "RSVP already received and locked.");
-        } else {
-          setLockedUI(false, "");
-        }
-
-        // Default select count and attendee inputs only when they choose attending yes
-        els.attending.value = "";
-        els.attendingCount.value = "";
-        els.attendeeList.innerHTML = "";
-        els.attendeeBox.style.display = "none";
-
-        switchTab(els.tabRsvp);
-
+        state.step = "coming";
+        render();
       } catch (err) {
-        setStatus(els.findStatus, "bad", err.message || "Something went wrong.");
+        state.loading = false;
+        state.error = String(err && err.message ? err.message : err);
+        render();
       }
     }
 
-    async function handleSubmit() {
-      clearStatus(els.rsvpStatus);
+    /* ---------------- COMING ---------------- */
 
-      if (!state.invite_id) {
-        setStatus(els.rsvpStatus, "warn", "Please find and select your invite first.");
-        return;
-      }
-      if (state.invite && state.invite.locked) {
-        setStatus(els.rsvpStatus, "warn", "This invite is locked.");
-        return;
-      }
+    function renderComing() {
+      const inviteName = (state.invite && state.invite.invite_name) ? state.invite.invite_name : "Guest";
+      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
 
-      const attending = (els.attending.value || "").trim(); // yes/no
-      if (attending !== "yes" && attending !== "no") {
-        setStatus(els.rsvpStatus, "warn", "Please select whether you are attending.");
-        return;
-      }
+      setHeader("RSVP", `${inviteName}, are you coming?`);
+      elCloseWrap.style.display = "none";
 
-      let attending_count = 0;
-      let phone = "";
-      let relationship = "";
-      let transportation = "";
-      let attendees = [];
-      const notes = (els.notes.value || "").trim();
+      const wrap = document.createElement("div");
+      wrap.className = "row";
 
-      if (attending === "yes") {
-        attending_count = Number(els.attendingCount.value);
-        if (!Number.isFinite(attending_count) || attending_count < 1) {
-          setStatus(els.rsvpStatus, "warn", "Please select how many people are attending.");
-          return;
+      const pills = document.createElement("div");
+      pills.className = "pillRow";
+
+      pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
+        state.attending = "yes";
+        state.attendingCount = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+        syncExtraNames(maxSeats);
+        render();
+      }));
+
+      pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
+        state.attending = "no";
+        state.attendingCount = 0;
+        state.extraNames = [];
+        render();
+      }));
+
+      wrap.appendChild(pills);
+
+      if (state.attending === "yes" && maxSeats > 1) {
+        const label = document.createElement("label");
+        label.textContent = "How many people are attending (including you)?";
+        wrap.appendChild(label);
+
+        const select = document.createElement("select");
+        for (let i = 1; i <= maxSeats; i++) {
+          const opt = document.createElement("option");
+          opt.value = String(i);
+          opt.textContent = String(i);
+          if (i === Number(state.attendingCount || 1)) opt.selected = true;
+          select.appendChild(opt);
         }
-
-        phone = (els.phone.value || "").trim();
-        relationship = (els.relationship.value || "").trim();
-        transportation = (els.transportation.value || "").trim();
-
-        if (!phone) { setStatus(els.rsvpStatus, "warn", "Phone number is required."); return; }
-        if (!relationship) { setStatus(els.rsvpStatus, "warn", "Relationship is required."); return; }
-        if (!transportation) { setStatus(els.rsvpStatus, "warn", "Transportation is required."); return; }
-
-        const inputs = Array.from(els.attendeeList.querySelectorAll("input"));
-        attendees = inputs.map(x => (x.value || "").trim()).slice(0, attending_count);
-
-        for (let i = 0; i < attending_count; i++) {
-          if (!attendees[i]) {
-            setStatus(els.rsvpStatus, "warn", `Missing full name for attendee ${i + 1}.`);
-            return;
-          }
-        }
-      }
-
-      els.btnSubmit.disabled = true;
-      els.btnSubmit.textContent = "Submitting...";
-
-      try {
-        const res = await api("submit", {
-          invite_id: state.invite_id,
-          attending,
-          attending_count,
-          phone,
-          relationship,
-          transportation,
-          notes,
-          attendees
+        select.addEventListener("change", (e) => {
+          state.attendingCount = Number(e.target.value);
+          syncExtraNames(maxSeats);
+          render();
         });
+        wrap.appendChild(select);
 
-        if (!res.ok) {
-          if (res.locked) {
-            const extra = res.contact_line ? ` ${res.contact_line}` : "";
-            setStatus(els.rsvpStatus, "warn", (res.error || "RSVP already received.") + extra);
-            setLockedUI(true, (res.error || "RSVP already received.") + extra);
-          } else {
-            setStatus(els.rsvpStatus, "bad", res.error || "Submission failed.");
+        // Ask only attendee #2..#N (your rule)
+        const extraCount = Math.max(Number(state.attendingCount) - 1, 0);
+        if (extraCount > 0) {
+          const note = document.createElement("div");
+          note.className = "muted";
+          note.textContent = "Please type the name(s) of the additional attendee(s).";
+          wrap.appendChild(note);
+
+          for (let i = 0; i < extraCount; i++) {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = `Attendee ${i + 2} full name`;
+            input.value = state.extraNames[i] || "";
+            input.addEventListener("input", (e) => state.extraNames[i] = e.target.value);
+            wrap.appendChild(input);
           }
-          return;
+        }
+      }
+
+      if (state.error) wrap.appendChild(errorEl(state.error));
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const back = document.createElement("button");
+      back.className = "secondary";
+      back.type = "button";
+      back.textContent = "Back";
+      back.addEventListener("click", () => {
+        state.error = "";
+        state.step = "pick";
+        render();
+      });
+
+      const next = document.createElement("button");
+      next.className = "primary";
+      next.type = "button";
+      next.textContent = "Next";
+      next.addEventListener("click", () => {
+        state.error = "";
+
+        if (state.attending !== "yes" && state.attending !== "no") {
+          state.error = "Please choose Yes or No.";
+          return render();
         }
 
-        setStatus(els.rsvpStatus, "ok", `RSVP received. Status: ${res.status}.`);
-        setLockedUI(true, "RSVP received and locked.");
+        if (state.attending === "yes") {
+          const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+          const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
 
+          // validate extra names if needed
+          const needed = Math.max(cnt - 1, 0);
+          const cleaned = (state.extraNames || []).map(s => (s || "").trim()).filter(Boolean);
+          if (cleaned.length < needed) {
+            state.error = "Please fill in the additional attendee name(s).";
+            return render();
+          }
+        }
+
+        state.step = "transpo";
+        render();
+      });
+
+      btns.appendChild(back);
+      btns.appendChild(next);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    function syncExtraNames(maxSeats) {
+      const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+      state.attendingCount = cnt;
+
+      const needed = Math.max(cnt - 1, 0);
+      const arr = Array.isArray(state.extraNames) ? state.extraNames.slice(0, needed) : [];
+      while (arr.length < needed) arr.push("");
+      state.extraNames = arr;
+    }
+
+    /* ---------------- TRANSPO ---------------- */
+
+    function renderTranspo() {
+      setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
+      elCloseWrap.style.display = "none";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+
+      const pills = document.createElement("div");
+      pills.className = "pillRow";
+
+      pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; render(); }));
+      pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; render(); }));
+
+      wrap.appendChild(pills);
+
+      if (state.error) wrap.appendChild(errorEl(state.error));
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const back = document.createElement("button");
+      back.className = "secondary";
+      back.type = "button";
+      back.textContent = "Back";
+      back.addEventListener("click", () => {
+        state.error = "";
+        state.step = "coming";
+        render();
+      });
+
+      const next = document.createElement("button");
+      next.className = "primary";
+      next.type = "button";
+      next.textContent = "Next";
+      next.addEventListener("click", () => {
+        state.error = "";
+        if (state.transportation !== "Yes" && state.transportation !== "No") {
+          state.error = "Please choose Yes or No.";
+          return render();
+        }
+        state.step = "phone";
+        render();
+      });
+
+      btns.appendChild(back);
+      btns.appendChild(next);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    /* ---------------- PHONE (+63) ---------------- */
+
+    function renderPhone() {
+      setHeader("Mobile number", "Please share a PH mobile number in case we need to contact you.");
+      elCloseWrap.style.display = "none";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+
+      const label = document.createElement("label");
+      label.textContent = "Mobile number";
+      wrap.appendChild(label);
+
+      const inline = document.createElement("div");
+      inline.className = "inline";
+
+      const prefix = document.createElement("input");
+      prefix.type = "text";
+      prefix.value = "+63";
+      prefix.disabled = true;
+
+      const number = document.createElement("input");
+      number.type = "tel";
+      number.inputMode = "numeric";
+      number.placeholder = "9XXXXXXXXX";
+      number.value = state.phoneDigits;
+      number.addEventListener("input", (e) => {
+        state.phoneDigits = (e.target.value || "").replace(/[^\d]/g, "");
+      });
+
+      inline.appendChild(prefix);
+      inline.appendChild(number);
+      wrap.appendChild(inline);
+
+      const hint = document.createElement("div");
+      hint.className = "muted";
+      hint.textContent = "Example: +63 9171234567";
+      wrap.appendChild(hint);
+
+      if (state.error) wrap.appendChild(errorEl(state.error));
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const back = document.createElement("button");
+      back.className = "secondary";
+      back.type = "button";
+      back.textContent = "Back";
+      back.addEventListener("click", () => {
+        state.error = "";
+        state.step = "transpo";
+        render();
+      });
+
+      const next = document.createElement("button");
+      next.className = "primary";
+      next.type = "button";
+      next.textContent = "Next";
+      next.addEventListener("click", () => {
+        state.error = "";
+        const digits = (state.phoneDigits || "").trim();
+        if (!digits) { state.error = "Please enter your mobile number."; return render(); }
+        if (digits.length < 10 || digits.length > 11) { state.error = "Please enter a valid PH mobile number."; return render(); }
+        state.step = "notes";
+        render();
+      });
+
+      btns.appendChild(back);
+      btns.appendChild(next);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+      setTimeout(() => number.focus(), 0);
+    }
+
+    /* ---------------- NOTES + SUBMIT ---------------- */
+
+    function renderNotes() {
+      setHeader("Additional notes", "Anything you want to share? (Optional)");
+      elCloseWrap.style.display = "none";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+
+      const label = document.createElement("label");
+      label.textContent = "Notes (optional)";
+      wrap.appendChild(label);
+
+      const ta = document.createElement("textarea");
+      ta.placeholder = "Dietary restrictions, timing notes, special requests, etc.";
+      ta.value = state.notes || "";
+      ta.addEventListener("input", (e) => state.notes = e.target.value);
+      wrap.appendChild(ta);
+
+      if (state.loading) wrap.appendChild(loadingRow());
+      if (state.error) wrap.appendChild(errorEl(state.error));
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const back = document.createElement("button");
+      back.className = "secondary";
+      back.type = "button";
+      back.textContent = "Back";
+      back.disabled = state.loading;
+      back.addEventListener("click", () => {
+        state.error = "";
+        state.step = "phone";
+        render();
+      });
+
+      const submit = document.createElement("button");
+      submit.className = "primary";
+      submit.type = "button";
+      submit.textContent = "Submit RSVP";
+      submit.disabled = state.loading;
+      submit.addEventListener("click", onSubmit);
+
+      btns.appendChild(back);
+      btns.appendChild(submit);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    async function onSubmit() {
+      state.error = "";
+      if (!state.invite || !state.invite.invite_id) {
+        state.error = "Missing invite details. Please start again.";
+        return render();
+      }
+
+      // Build attendees array:
+      // attendee #1 is invite_name (always)
+      // attendee #2..#N are extraNames
+      let attendees = [];
+      const inviteName = (state.invite.invite_name || "").trim();
+      if (inviteName) attendees.push(inviteName);
+
+      if (state.attending === "yes") {
+        const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+        const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+
+        const neededExtra = Math.max(cnt - 1, 0);
+        const extras = (state.extraNames || []).slice(0, neededExtra).map(s => (s || "").trim());
+
+        for (let i = 0; i < extras.length; i++) {
+          if (!extras[i]) {
+            state.error = "Please fill in the additional attendee name(s).";
+            return render();
+          }
+          attendees.push(extras[i]);
+        }
+      } else {
+        // if declined, attendees array stays as [invite_name] but attending_count = 0; server will ignore
+      }
+
+      const payload = {
+        invite_id: state.invite.invite_id,
+        attending: state.attending, // "yes" | "no"
+        attending_count: state.attending === "yes" ? Number(state.attendingCount || 1) : 0,
+        attendees: state.attending === "yes" ? attendees.slice(0, CONFIG.maxSeatsCap) : [],
+        phone: "+63" + (state.phoneDigits || "").trim(),
+        transportation: state.transportation,
+        notes: (state.notes || "").trim()
+      };
+
+      state.loading = true;
+      render();
+
+      try {
+        const data = await api("submit", payload);
+        state.loading = false;
+
+        if (!data || !data.ok) {
+          // If locked, show contact line
+          if (data && data.locked) {
+            state.contactLine = data.contact_line || state.contactLine || "";
+            state.step = "locked";
+            return render();
+          }
+          throw new Error(data && data.error ? data.error : "Submit failed.");
+        }
+
+        state.step = "thanks";
+        render();
       } catch (err) {
-        setStatus(els.rsvpStatus, "bad", err.message || "Something went wrong.");
-      } finally {
-        els.btnSubmit.disabled = false;
-        els.btnSubmit.textContent = "Submit RSVP";
+        state.loading = false;
+        state.error = String(err && err.message ? err.message : err);
+        render();
       }
     }
 
-    // Events
-    els.tabFind.addEventListener("click", () => switchTab(els.tabFind));
-    els.tabRsvp.addEventListener("click", () => { if (!els.tabRsvp.disabled) switchTab(els.tabRsvp); });
-    els.tabHelp.addEventListener("click", () => switchTab(els.tabHelp));
+    /* ---------------- LOCKED ---------------- */
 
-    els.btnFind.addEventListener("click", handleFind);
-    els.qName.addEventListener("keydown", (e) => { if (e.key === "Enter") handleFind(); });
+    function renderLocked() {
+      setHeader("RSVP already received", "For changes, please contact the coordinator.");
+      elCloseWrap.style.display = "flex";
 
-    els.btnBack.addEventListener("click", () => switchTab(els.tabFind));
-    els.btnSubmit.addEventListener("click", handleSubmit);
+      const wrap = document.createElement("div");
+      wrap.className = "row";
 
-    els.btnModalClose.addEventListener("click", closeModal);
-    els.overlay.addEventListener("click", (e) => { if (e.target === els.overlay) closeModal(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+      const msg = document.createElement("div");
+      msg.className = "muted";
+      msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+      wrap.appendChild(msg);
 
-    els.attending.addEventListener("change", () => {
-      if (els.attending.value === "no") {
-        els.attendingCount.value = "";
-        els.attendeeList.innerHTML = "";
-        els.attendeeBox.style.display = "none";
-      }
-    });
+      const btns = document.createElement("div");
+      btns.className = "btns";
 
-    els.attendingCount.addEventListener("change", () => {
-      if (els.attending.value !== "yes") return;
-      const c = Number(els.attendingCount.value);
-      if (!Number.isFinite(c) || c < 1) {
-        els.attendeeList.innerHTML = "";
-        els.attendeeBox.style.display = "none";
-        return;
-      }
-      rebuildAttendeeInputs(c);
-    });
+      const startOver = document.createElement("button");
+      startOver.className = "secondary";
+      startOver.type = "button";
+      startOver.textContent = "Start over";
+      startOver.addEventListener("click", resetAll);
+
+      const close = document.createElement("button");
+      close.className = "primary";
+      close.type = "button";
+      close.textContent = "Close";
+      close.addEventListener("click", closeModal);
+
+      btns.appendChild(startOver);
+      btns.appendChild(close);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    /* ---------------- THANKS ---------------- */
+
+    function renderThanks() {
+      setHeader("Thank you!", "Your RSVP has been saved.");
+      elCloseWrap.style.display = "flex";
+
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+
+      const msg = document.createElement("div");
+      msg.className = "muted";
+      msg.textContent = "You can close this window now.";
+      wrap.appendChild(msg);
+
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
+      const startOver = document.createElement("button");
+      startOver.className = "secondary";
+      startOver.type = "button";
+      startOver.textContent = "Start over";
+      startOver.addEventListener("click", resetAll);
+
+      const close = document.createElement("button");
+      close.className = "primary";
+      close.type = "button";
+      close.textContent = "Close";
+      close.addEventListener("click", closeModal);
+
+      btns.appendChild(startOver);
+      btns.appendChild(close);
+      wrap.appendChild(btns);
+
+      elContent.appendChild(wrap);
+    }
+
+    /* ---------------- UTIL ---------------- */
+
+    function pill(text, active, onClick) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pill" + (active ? " active" : "");
+      b.textContent = text;
+      b.addEventListener("click", onClick);
+      return b;
+    }
+
+    function errorEl(msg) {
+      const err = document.createElement("div");
+      err.className = "error";
+      err.textContent = msg;
+      return err;
+    }
+
+    function clamp(n, a, b) {
+      if (!Number.isFinite(n)) return a;
+      return Math.min(Math.max(n, a), b);
+    }
+
+    function resetAll() {
+      state.step = "find";
+      state.loading = false;
+      state.error = "";
+      state.nameQuery = "";
+      state.matches = [];
+      state.selected = null;
+      state.invite = null;
+      state.attending = null;
+      state.attendingCount = 1;
+      state.extraNames = [];
+      state.transportation = null;
+      state.phoneDigits = "";
+      state.notes = "";
+      render();
+    }
+
+    function closeModal() {
+      // Best-effort close inside Readymag iframe
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+        }
+      } catch (e) {}
+
+      const modal = document.getElementById("modal");
+      if (modal) modal.style.display = "none";
+
+      try { window.close(); } catch (e) {}
+    }
+
+    resetAll();
   </script>
 </body>
 </html>
