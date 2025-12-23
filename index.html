@@ -5,159 +5,178 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>RSVP</title>
   <style>
-    :root {
-      --bg: #ffffff;
-      --fg: #111111;
-      --muted: #666666;
-      --line: rgba(0,0,0,0.12);
-      --btn: #111111;
-      --btnfg: #ffffff;
-      --btn2: #f2f2f2;
-      --err: #b00020;
+    :root{
+      --bg:#0b0b0d;
+      --card:#121218;
+      --text:#f4f4f6;
+      --muted:#b7b7c2;
+      --line:#242431;
+      --err:#ff6b6b;
+      --btn:#ffffff;
+      --btnText:#0b0b0d;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: transparent;
-      color: var(--fg);
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:transparent;
+      color:var(--text);
     }
-    .overlay {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 18px;
+    /* Modal layout */
+    #modal{
+      width:min(420px, calc(100vw - 32px));
+      margin:16px auto;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+      text-align:center;
     }
-    .modal {
-      width: min(520px, 100%);
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.12);
-      overflow: hidden;
+    #header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      text-align:center;
     }
-    .header {
-      padding: 18px 18px 10px 18px;
-      border-bottom: 1px solid var(--line);
+    #title{
+      margin:0;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.2px;
     }
-    .title {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.2;
-      font-weight: 650;
-    }
-    .sub {
-      margin: 8px 0 0 0;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-    .content { padding: 16px 18px 18px 18px; }
-    .row { display: grid; gap: 10px; }
-    label { font-size: 13px; color: var(--muted); }
-    input[type="text"], input[type="tel"], textarea, select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px 12px;
-      font-size: 15px;
-      outline: none;
-      background: #fff;
-      color: var(--fg);
-    }
-    textarea { min-height: 90px; resize: vertical; }
-    .btns { display: flex; gap: 10px; margin-top: 14px; }
-    button {
-      appearance: none;
-      border: 1px solid transparent;
-      border-radius: 12px;
-      padding: 11px 14px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .primary { background: var(--btn); color: var(--btnfg); }
-    .secondary { background: var(--btn2); color: var(--fg); border-color: var(--line); }
-    .muted { color: var(--muted); font-size: 13px; line-height: 1.35; }
-    .error { color: var(--err); font-size: 13px; line-height: 1.35; }
-
-    .list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-    .item {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 12px 12px;
-      border-bottom: 1px solid var(--line);
-      cursor: pointer;
-    }
-    .item:last-child { border-bottom: none; }
-    .item:hover { background: rgba(0,0,0,0.03); }
-    .itemName { font-size: 15px; }
-    .tag { font-size: 12px; color: var(--muted); }
-
-    .pillRow { display: flex; gap: 10px; flex-wrap: wrap; }
-    .pill {
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: #fff;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .pill.active {
-      background: rgba(0,0,0,0.06);
-      border-color: rgba(0,0,0,0.18);
+    #subtitle{
+      margin:8px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
     }
 
-    .inline {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 10px;
-      align-items: center;
+    #content{
+      padding:16px 18px 18px;
+      text-align:center;
     }
 
-    .loading {
-      display: inline-flex;
-      gap: 10px;
-      align-items: center;
-      font-size: 13px;
-      color: var(--muted);
+    .row{display:flex; flex-direction:column; gap:10px; align-items:center;}
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      text-align:center;
     }
-    .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(0,0,0,0.25);
-      animation: pulse 1s infinite ease-in-out;
+    input, select, textarea{
+      width:100%;
+      max-width: 360px;
+      box-sizing:border-box;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#0f0f15;
+      color:var(--text);
+      padding:12px 12px;
+      outline:none;
+      font-size:14px;
+      text-align:center;
     }
-    .dot:nth-child(2) { animation-delay: .15s; }
-    .dot:nth-child(3) { animation-delay: .3s; }
-    @keyframes pulse {
-      0%, 100% { transform: scale(0.9); opacity: 0.45; }
-      50% { transform: scale(1.15); opacity: 1; }
+    textarea{min-height:92px; resize:vertical; text-align:center;}
+    .muted{color:var(--muted); font-size:13px; line-height:1.35; text-align:center;}
+    .error{
+      width:100%;
+      max-width: 360px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,107,107,.35);
+      background: rgba(255,107,107,.08);
+      color:var(--err);
+      font-size:13px;
+      text-align:center;
     }
 
-    .closeWrap {
-      display: flex;
-      justify-content: flex-end;
-      padding: 10px 12px;
-      border-top: 1px solid var(--line);
-      background: rgba(0,0,0,0.02);
+    .btns{display:flex; gap:10px; justify-content:center; margin-top:8px; flex-wrap:wrap;}
+    button{
+      border:0;
+      border-radius:12px;
+      padding:11px 14px;
+      font-weight:650;
+      cursor:pointer;
+      font-size:14px;
+    }
+    button.primary{
+      background:var(--btn);
+      color:var(--btnText);
+      min-width:140px;
+    }
+    button.secondary{
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--text);
+      min-width:140px;
+    }
+    button:disabled{opacity:.6; cursor:not-allowed;}
+
+    .pillRow{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px;}
+    .pill{
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--text);
+      min-width:150px;
+    }
+    .pill.active{
+      background:rgba(255,255,255,.10);
+      border-color:rgba(255,255,255,.22);
+    }
+
+    /* Pick list as buttons */
+    .pickList{display:flex; flex-direction:column; gap:10px; width:100%; align-items:center;}
+    .pickBtn{
+      width:100%;
+      max-width: 360px;
+      text-align:center;
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      font-weight:700;
+    }
+    .pickBtn:hover{background:rgba(255,255,255,.06);}
+
+    /* Loading */
+    .loading{display:flex; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-size:13px; margin-top:4px;}
+    .dot{width:6px; height:6px; border-radius:50%; background:var(--muted); animation:b 1s infinite ease-in-out;}
+    .dot:nth-child(2){animation-delay:.15s}
+    .dot:nth-child(3){animation-delay:.3s}
+    @keyframes b{0%,80%,100%{transform:scale(.7); opacity:.6} 40%{transform:scale(1.1); opacity:1}}
+
+    /* Main close bar (top-right) */
+    #closeWrap{
+      padding:12px 18px 16px;
+      border-top:1px solid var(--line);
+      display:none;
+      justify-content:center;
+    }
+    #closeBtn{
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--text);
+      min-width:180px;
     }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <div class="modal" id="modal">
-      <div class="header">
-        <h1 class="title" id="title">Find your invite</h1>
-        <p class="sub" id="subtitle">Type the name on the invitation, then pick your match to continue.</p>
-      </div>
-      <div class="content" id="content"></div>
-      <div class="closeWrap" id="closeWrap" style="display:none;">
-        <button class="secondary" id="closeBtn" type="button">Close</button>
-      </div>
+  <div id="modal" role="dialog" aria-modal="true">
+    <div id="header">
+      <h1 id="title">RSVP</h1>
+      <p id="subtitle"></p>
+    </div>
+
+    <div id="content"></div>
+
+    <!-- Main close bar button (we will HIDE this on Thanks + Locked as requested) -->
+    <div id="closeWrap">
+      <button id="closeBtn">Close</button>
     </div>
   </div>
 
-  <script>
+<script>
   const CONFIG = {
     webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
     maxSeatsCap: 4
@@ -170,15 +189,14 @@
     contactLine: "",
     nameQuery: "",
     matches: [],
-    selected: null,
     invite: null,
 
-    attending: null,          // "yes" | "no"
+    attending: null,     // "yes" | "no"
     attendingCount: 1,
-    attendeeNames: [],        // attendee #1..#N
+    attendeeNames: [],
 
-    transportation: null,     // "Yes" | "No"
-    phoneDigits: "",          // raw digits for 09xxxxxxxxx
+    transportation: null, // "Yes" | "No"
+    phoneDigits: "",
     notes: ""
   };
 
@@ -187,7 +205,6 @@
   const elContent = document.getElementById("content");
   const elCloseWrap = document.getElementById("closeWrap");
   const elCloseBtn = document.getElementById("closeBtn");
-
   elCloseBtn.addEventListener("click", closeModal);
 
   function setHeader(title, subtitle) {
@@ -237,7 +254,7 @@
   }
 
   function syncAttendeeNames_(maxSeats) {
-    const cnt = clamp(state.attendingCount || 1, 1, maxSeats);
+    const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
     state.attendingCount = cnt;
 
     const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
@@ -276,28 +293,25 @@
     if (state.step === "phone") return renderPhone();
     if (state.step === "notes") return renderNotes();
     if (state.step === "locked") return renderLocked();
+    if (state.step === "declined") return renderDeclined();
     if (state.step === "thanks") return renderThanks();
 
     state.step = "find";
-    return renderFind();
+    renderFind();
   }
 
   /* ---------------- FIND ---------------- */
 
   function renderFind() {
-    setHeader("Find your invite", "Type the name on the invitation, then pick your match to continue.");
+    setHeader("Find your invite", "Type the name on the invitation.");
     elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
-    const label = document.createElement("label");
-    label.textContent = "Guest name";
-    wrap.appendChild(label);
-
     const input = document.createElement("input");
     input.type = "text";
-    input.placeholder = "Example: Maria Santos";
+    input.placeholder = "Full name";
     input.value = state.nameQuery;
     input.addEventListener("input", (e) => state.nameQuery = e.target.value);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
@@ -316,22 +330,8 @@
     btn.disabled = state.loading;
     btn.onclick = onFind;
 
-    const clear = document.createElement("button");
-    clear.className = "secondary";
-    clear.type = "button";
-    clear.textContent = "Clear";
-    clear.disabled = state.loading;
-    clear.onclick = () => {
-      state.nameQuery = "";
-      state.matches = [];
-      state.error = "";
-      render();
-      input.focus();
-    };
-
-    btns.appendChild(btn);
-    btns.appendChild(clear);
     wrap.appendChild(btns);
+    btns.appendChild(btn);
 
     elContent.appendChild(wrap);
     setTimeout(() => input.focus(), 0);
@@ -354,7 +354,7 @@
       state.matches = Array.isArray(data.matches) ? data.matches : [];
 
       if (state.matches.length === 0) {
-        state.error = "No match found. Try a different spelling, or include a first and last name.";
+        state.error = "No match found. Try a different spelling.";
         return render();
       }
 
@@ -367,37 +367,25 @@
     }
   }
 
-  /* ---------------- PICK ---------------- */
+  /* ---------------- PICK (Verification) ---------------- */
 
   function renderPick() {
-    setHeader("Verify your name", "Select your name to continue.");
+    setHeader("Verify your name", "Tap your name to continue.");
     elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
     const list = document.createElement("div");
-    list.className = "list";
+    list.className = "pickList";
 
     state.matches.forEach((m) => {
-      const item = document.createElement("div");
-      item.className = "item";
-
-      const left = document.createElement("div");
-      left.innerHTML = `<div class="itemName"></div><div class="tag"></div>`;
-      left.querySelector(".itemName").textContent = m.invite_name || "Unnamed guest";
-      const seats = Math.min(Number(m.max_seats || 1), CONFIG.maxSeatsCap);
-      left.querySelector(".tag").textContent = seats > 1 ? `Party of ${seats}` : "Single invite";
-
-      const right = document.createElement("div");
-      right.className = "tag";
-      right.textContent = "Select";
-
-      item.appendChild(left);
-      item.appendChild(right);
-      item.onclick = () => onPick(m);
-
-      list.appendChild(item);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pickBtn";
+      b.textContent = m.invite_name || "Unnamed guest";
+      b.onclick = () => onPick(m);
+      list.appendChild(b);
     });
 
     wrap.appendChild(list);
@@ -423,7 +411,6 @@
 
   async function onPick(m) {
     state.error = "";
-    state.selected = m;
     state.loading = true;
     render();
 
@@ -475,7 +462,7 @@
     const pills = document.createElement("div");
     pills.className = "pillRow";
 
-    pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
+    pills.appendChild(pill("Yes", state.attending === "yes", () => {
       state.attending = "yes";
       state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
       syncAttendeeNames_(maxSeats);
@@ -483,7 +470,7 @@
       render();
     }));
 
-    pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
+    pills.appendChild(pill("No", state.attending === "no", () => {
       state.attending = "no";
       state.attendingCount = 0;
       state.attendeeNames = [];
@@ -494,15 +481,11 @@
     wrap.appendChild(pills);
 
     if (state.attending === "yes") {
-      const label = document.createElement("label");
-      label.textContent = "How many people are attending?";
-      wrap.appendChild(label);
-
       const select = document.createElement("select");
       for (let i = 1; i <= maxSeats; i++) {
         const opt = document.createElement("option");
         opt.value = i;
-        opt.textContent = i;
+        opt.textContent = `${i}`;
         if (i === Number(state.attendingCount || 1)) opt.selected = true;
         select.appendChild(opt);
       }
@@ -543,28 +526,67 @@
     const next = document.createElement("button");
     next.className = "primary";
     next.textContent = "Next";
-    next.onclick = () => {
-      state.error = "";
+    next.onclick = async () => {
+  state.error = "";
 
-      if (state.attending !== "yes" && state.attending !== "no") {
-        state.error = "Please choose Yes or No.";
-        return render();
-      }
+  if (state.attending !== "yes" && state.attending !== "no") {
+    state.error = "Please choose Yes or No.";
+    return render();
+  }
 
-      if (state.attending === "yes") {
-        const cleaned = (state.attendeeNames || [])
-          .slice(0, state.attendingCount)
-          .map(n => (n || "").trim());
+  // If NO: submit immediately, then show Declined screen
+  if (state.attending === "no") {
+    state.loading = true;
+    render();
 
-        if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
-          state.error = "Please fill in all attendee names.";
+    try {
+      const payload = {
+        invite_id: state.invite.invite_id,
+        attending: "no",
+        attending_count: 0,
+        attendees: [],
+        phone: "",
+        transportation: "",
+        notes: ""
+      };
+
+      const data = await api("submit", payload);
+      state.loading = false;
+
+      if (!data || !data.ok) {
+        if (data && data.locked) {
+          state.contactLine = data.contact_line || state.contactLine || "";
+          state.step = "locked";
           return render();
         }
+        throw new Error(data?.error || "Submit failed.");
       }
 
-      state.step = "transpo";
-      render();
-    };
+      state.step = "declined";
+      return render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      return render();
+    }
+  }
+
+  // If YES: validate attendee names then continue flow
+  if (state.attending === "yes") {
+    const cleaned = (state.attendeeNames || [])
+      .slice(0, state.attendingCount)
+      .map(n => (n || "").trim());
+
+    if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
+      state.error = "Please fill in all attendee names.";
+      return render();
+    }
+  }
+
+  state.step = "transpo";
+  render();
+};
+
 
     btns.appendChild(back);
     btns.appendChild(next);
@@ -621,17 +643,12 @@
   /* ---------------- PHONE ---------------- */
 
   function renderPhone() {
-    setHeader("Mobile number", "Please enter a PH mobile number in the format 09XX XXX XXXX.");
+    setHeader("Mobile number", "Please enter your PH mobile number.");
     elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
-    const label = document.createElement("label");
-    label.textContent = "Mobile number";
-    wrap.appendChild(label);
-
-    // This is the actual input. If you still see “no box”, it means this function is not running.
     const input = document.createElement("input");
     input.type = "tel";
     input.inputMode = "numeric";
@@ -646,11 +663,6 @@
     };
 
     wrap.appendChild(input);
-
-    const hint = document.createElement("div");
-    hint.className = "muted";
-    hint.textContent = "Example: 0917 123 4567";
-    wrap.appendChild(hint);
 
     if (state.error) wrap.appendChild(errorEl(state.error));
 
@@ -686,18 +698,14 @@
   /* ---------------- NOTES ---------------- */
 
   function renderNotes() {
-    setHeader("Additional notes", "Anything you want to share? (Optional)");
+    setHeader("Notes", "Anything else? (Optional)");
     elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
-    const label = document.createElement("label");
-    label.textContent = "Notes (optional)";
-    wrap.appendChild(label);
-
     const ta = document.createElement("textarea");
-    ta.placeholder = "Dietary restrictions, timing notes, special requests, etc.";
+    ta.placeholder = "Type your notes here (optional)";
     ta.value = state.notes || "";
     ta.oninput = (e) => state.notes = e.target.value;
     wrap.appendChild(ta);
@@ -716,7 +724,7 @@
 
     const submit = document.createElement("button");
     submit.className = "primary";
-    submit.textContent = "Submit RSVP";
+    submit.textContent = state.loading ? "Submitting…" : "Submit RSVP";
     submit.disabled = state.loading;
     submit.onclick = onSubmit;
 
@@ -808,52 +816,83 @@
   /* ---------------- LOCKED / THANKS ---------------- */
 
   function renderLocked() {
-  setHeader("RSVP already received", "For changes, please contact the coordinator.");
-  elCloseWrap.style.display = "flex"; // main close bar button
+    setHeader("RSVP already received", "For changes, please contact the coordinator.");
+    elCloseWrap.style.display = "none"; // remove main close bar button on this screen
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+    wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const startOver = document.createElement("button");
+    startOver.className = "secondary";
+    startOver.textContent = "Start over";
+    startOver.onclick = resetAll;
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(startOver);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderDeclined() {
+  setHeader("Thank you!", "We’re so sorry you won’t be able to make it.");
+  elCloseWrap.style.display = "none"; // main close bar hidden (as requested)
 
   const wrap = document.createElement("div");
   wrap.className = "row";
 
   const msg = document.createElement("div");
   msg.className = "muted";
-  msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+  msg.textContent = "Thank you for letting us know.";
   wrap.appendChild(msg);
 
   const btns = document.createElement("div");
   btns.className = "btns";
 
-  const startOver = document.createElement("button");
-  startOver.className = "secondary";
-  startOver.textContent = "Start over";
-  startOver.onclick = resetAll;
+  const close = document.createElement("button");
+  close.className = "primary";
+  close.textContent = "Close";
+  close.onclick = closeModal;
 
-  btns.appendChild(startOver);
+  btns.appendChild(close);
   wrap.appendChild(btns);
 
   elContent.appendChild(wrap);
 }
 
   function renderThanks() {
-  setHeader("Thank you!", "See you soon.");
-  elCloseWrap.style.display = "flex"; // show the main close bar button only
+    setHeader("Thank you!", "See you soon.");
+    elCloseWrap.style.display = "none"; // remove main close bar button on this screen
 
-  const wrap = document.createElement("div");
-  wrap.className = "row";
+    const wrap = document.createElement("div");
+    wrap.className = "row";
 
-  const btns = document.createElement("div");
-  btns.className = "btns";
+    const btns = document.createElement("div");
+    btns.className = "btns";
 
-  const startOver = document.createElement("button");
-  startOver.className = "secondary";
-  startOver.textContent = "Start over";
-  startOver.onclick = resetAll;
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
 
-  // No close button here (main close button is below)
-  btns.appendChild(startOver);
-  wrap.appendChild(btns);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
 
-  elContent.appendChild(wrap);
-}
+    elContent.appendChild(wrap);
+  }
 
   function resetAll() {
     state.step = "find";
@@ -861,7 +900,6 @@
     state.error = "";
     state.nameQuery = "";
     state.matches = [];
-    state.selected = null;
     state.invite = null;
 
     state.attending = null;
@@ -881,13 +919,14 @@
         window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
       }
     } catch (e) {}
+
     const modal = document.getElementById("modal");
     if (modal) modal.style.display = "none";
+
     try { window.close(); } catch (e) {}
   }
 
   resetAll();
 </script>
-
 </body>
 </html>
