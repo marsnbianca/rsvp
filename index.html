@@ -808,36 +808,30 @@
   /* ---------------- LOCKED / THANKS ---------------- */
 
   function renderLocked() {
-    setHeader("RSVP already received", "For changes, please contact the coordinator.");
-    elCloseWrap.style.display = "flex";
+  setHeader("RSVP already received", "For changes, please contact the coordinator.");
+  elCloseWrap.style.display = "flex"; // show main close button
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
+  const wrap = document.createElement("div");
+  wrap.className = "row";
 
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
-    wrap.appendChild(msg);
+  const msg = document.createElement("div");
+  msg.className = "muted";
+  msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+  wrap.appendChild(msg);
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
+  const btns = document.createElement("div");
+  btns.className = "btns";
 
-    const startOver = document.createElement("button");
-    startOver.className = "secondary";
-    startOver.textContent = "Start over";
-    startOver.onclick = resetAll;
+  const startOver = document.createElement("button");
+  startOver.className = "secondary";
+  startOver.textContent = "Start over";
+  startOver.onclick = resetAll;
 
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
+  btns.appendChild(startOver);
+  wrap.appendChild(btns);
 
-    btns.appendChild(startOver);
-    btns.appendChild(close);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
+  elContent.appendChild(wrap);
+}
 
   function renderThanks() {
     setHeader("Thank you!", "Your RSVP has been saved.");
