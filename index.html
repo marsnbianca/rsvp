@@ -174,7 +174,7 @@
       invite: null,   // from get
       attending: null, // "yes" | "no"
       attendingCount: 1,
-      extraNames: [], // attendee #2..#N
+      attendeeNames: [], // attendee #1..#N
       transportation: null, // "Yes" | "No"
       phoneDigits: "",
       notes: ""
@@ -416,134 +416,128 @@
     /* ---------------- COMING ---------------- */
 
     function renderComing() {
-      const inviteName = (state.invite && state.invite.invite_name) ? state.invite.invite_name : "Guest";
-      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+  const inviteName = state.invite?.invite_name || "Guest";
+  const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
 
-      setHeader("RSVP", `${inviteName}, are you coming?`);
-      elCloseWrap.style.display = "none";
+  setHeader("RSVP", `${inviteName}, are you coming?`);
+  elCloseWrap.style.display = "none";
 
-      const wrap = document.createElement("div");
-      wrap.className = "row";
+  const wrap = document.createElement("div");
+  wrap.className = "row";
 
-      const pills = document.createElement("div");
-      pills.className = "pillRow";
+  /* YES / NO */
+  const pills = document.createElement("div");
+  pills.className = "pillRow";
 
-      pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
-        state.attending = "yes";
-        state.attendingCount = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-        syncExtraNames(maxSeats);
-        render();
-      }));
+  pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
+    state.attending = "yes";
+    state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
+    syncAttendeeNames_(maxSeats);
+    state.error = "";
+    render();
+  }));
 
-      pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
-        state.attending = "no";
-        state.attendingCount = 0;
-        state.extraNames = [];
-        render();
-      }));
+  pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
+    state.attending = "no";
+    state.attendingCount = 0;
+    state.attendeeNames = [];
+    state.error = "";
+    render();
+  }));
 
-      wrap.appendChild(pills);
+  wrap.appendChild(pills);
 
-      if (state.attending === "yes" && maxSeats > 1) {
-        const label = document.createElement("label");
-        label.textContent = "How many people are attending (including you)?";
-        wrap.appendChild(label);
+  /* IF YES → HOW MANY + ALL NAMES */
+  if (state.attending === "yes") {
+    const label = document.createElement("label");
+    label.textContent = "How many people are attending?";
+    wrap.appendChild(label);
 
-        const select = document.createElement("select");
-        for (let i = 1; i <= maxSeats; i++) {
-          const opt = document.createElement("option");
-          opt.value = String(i);
-          opt.textContent = String(i);
-          if (i === Number(state.attendingCount || 1)) opt.selected = true;
-          select.appendChild(opt);
-        }
-        select.addEventListener("change", (e) => {
-          state.attendingCount = Number(e.target.value);
-          syncExtraNames(maxSeats);
-          render();
-        });
-        wrap.appendChild(select);
+    const select = document.createElement("select");
+    for (let i = 1; i <= maxSeats; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = i;
+      if (i === state.attendingCount) opt.selected = true;
+      select.appendChild(opt);
+    }
 
-        // Ask only attendee #2..#N (your rule)
-        const extraCount = Math.max(Number(state.attendingCount) - 1, 0);
-        if (extraCount > 0) {
-          const note = document.createElement("div");
-          note.className = "muted";
-          note.textContent = "Please type the name(s) of the additional attendee(s).";
-          wrap.appendChild(note);
+    select.addEventListener("change", (e) => {
+      state.attendingCount = Number(e.target.value);
+      syncAttendeeNames_(maxSeats);
+      render();
+    });
 
-          for (let i = 0; i < extraCount; i++) {
-            const input = document.createElement("input");
-            input.type = "text";
-            input.placeholder = `Attendee ${i + 2} full name`;
-            input.value = state.extraNames[i] || "";
-            input.addEventListener("input", (e) => state.extraNames[i] = e.target.value);
-            wrap.appendChild(input);
-          }
-        }
+    wrap.appendChild(select);
+
+    syncAttendeeNames_(maxSeats);
+
+    const note = document.createElement("div");
+    note.className = "muted";
+    note.textContent = "Please enter the full name of each attendee.";
+    wrap.appendChild(note);
+
+    for (let i = 0; i < state.attendingCount; i++) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = `Attendee ${i + 1} full name`;
+      input.value = state.attendeeNames[i] || "";
+      input.addEventListener("input", (e) => {
+        state.attendeeNames[i] = e.target.value;
+      });
+      wrap.appendChild(input);
+    }
+  }
+
+  if (state.error) wrap.appendChild(errorEl(state.error));
+
+  /* BUTTONS */
+  const btns = document.createElement("div");
+  btns.className = "btns";
+
+  const back = document.createElement("button");
+  back.className = "secondary";
+  back.textContent = "Back";
+  back.onclick = () => {
+    state.error = "";
+    state.step = "pick";
+    render();
+  };
+
+  const next = document.createElement("button");
+  next.className = "primary";
+  next.textContent = "Next";
+  next.onclick = () => {
+    state.error = "";
+
+    if (state.attending !== "yes" && state.attending !== "no") {
+      state.error = "Please choose Yes or No.";
+      return render();
+    }
+
+    if (state.attending === "yes") {
+      const cleaned = state.attendeeNames
+        .slice(0, state.attendingCount)
+        .map(n => (n || "").trim());
+
+      if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
+        state.error = "Please fill in all attendee names.";
+        return render();
       }
-
-      if (state.error) wrap.appendChild(errorEl(state.error));
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const back = document.createElement("button");
-      back.className = "secondary";
-      back.type = "button";
-      back.textContent = "Back";
-      back.addEventListener("click", () => {
-        state.error = "";
-        state.step = "pick";
-        render();
-      });
-
-      const next = document.createElement("button");
-      next.className = "primary";
-      next.type = "button";
-      next.textContent = "Next";
-      next.addEventListener("click", () => {
-        state.error = "";
-
-        if (state.attending !== "yes" && state.attending !== "no") {
-          state.error = "Please choose Yes or No.";
-          return render();
-        }
-
-        if (state.attending === "yes") {
-          const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
-          const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-
-          // validate extra names if needed
-          const needed = Math.max(cnt - 1, 0);
-          const cleaned = (state.extraNames || []).map(s => (s || "").trim()).filter(Boolean);
-          if (cleaned.length < needed) {
-            state.error = "Please fill in the additional attendee name(s).";
-            return render();
-          }
-        }
-
-        state.step = "transpo";
-        render();
-      });
-
-      btns.appendChild(back);
-      btns.appendChild(next);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
     }
 
-    function syncExtraNames(maxSeats) {
-      const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-      state.attendingCount = cnt;
+    state.step = "transpo";
+    render();
+  };
 
-      const needed = Math.max(cnt - 1, 0);
-      const arr = Array.isArray(state.extraNames) ? state.extraNames.slice(0, needed) : [];
-      while (arr.length < needed) arr.push("");
-      state.extraNames = arr;
-    }
+  btns.appendChild(back);
+  btns.appendChild(next);
+  wrap.appendChild(btns);
 
+  elContent.appendChild(wrap);
+}
+
+    
     /* ---------------- TRANSPO ---------------- */
 
     function renderTranspo() {
@@ -613,42 +607,22 @@
   const input = document.createElement("input");
   input.type = "tel";
   input.inputMode = "numeric";
-  input.placeholder = "09XX XXX XXXX";
-  input.value = formatPH09_(state.phoneDigits); // formatted display
   input.autocomplete = "tel";
+  input.placeholder = "09XX XXX XXXX";
+  input.value = formatPH09_(state.phoneDigits);
 
   input.addEventListener("input", (e) => {
-    // keep digits only, max 11
-    const rawDigits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
-
-    // update state with digits only
-    state.phoneDigits = rawDigits;
-
-    // reformat and keep caret usable (simple approach)
-    e.target.value = formatPH09_(rawDigits);
-
-    // quick inline validation feedback (optional)
-    state.error = "";
-    renderPhoneInlineValidation_(wrap, rawDigits);
+    const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
+    state.phoneDigits = digits;
+    e.target.value = formatPH09_(digits);
   });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      // trigger Next if valid
-      tryAdvancePhone_();
-    }
-  });
-
-  wrap.appendChild(input);
+  if (state.error) wrap.appendChild(errorEl(state.error));
 
   const hint = document.createElement("div");
   hint.className = "muted";
   hint.textContent = "Example: 0917 123 4567";
   wrap.appendChild(hint);
-
-  // error area (if any)
-  if (state.error) wrap.appendChild(errorEl(state.error));
 
   const btns = document.createElement("div");
   btns.className = "btns";
@@ -657,43 +631,32 @@
   back.className = "secondary";
   back.type = "button";
   back.textContent = "Back";
-  back.addEventListener("click", () => {
+  back.onclick = () => {
     state.error = "";
     state.step = "transpo";
     render();
-  });
+  };
 
   const next = document.createElement("button");
   next.className = "primary";
   next.type = "button";
   next.textContent = "Next";
-  next.addEventListener("click", tryAdvancePhone_);
+  next.onclick = () => {
+    state.error = "";
+    if (!isValidPH09_(state.phoneDigits)) {
+      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+      return render();
+    }
+    state.step = "notes";
+    render();
+  };
 
   btns.appendChild(back);
   btns.appendChild(next);
   wrap.appendChild(btns);
 
   elContent.appendChild(wrap);
-
   setTimeout(() => input.focus(), 0);
-
-  function tryAdvancePhone_() {
-    state.error = "";
-    const digits = (state.phoneDigits || "").trim();
-
-    if (!isValidPH09_(digits)) {
-      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
-      return render();
-    }
-
-    state.step = "notes";
-    render();
-  }
-}
-
-function renderPhoneInlineValidation_(wrap, digits) {
-  // optional: no-op for now; keeping function so input handler stays clean
-  // You can add a subtle helper line here if you want.
 }
 
 
@@ -748,72 +711,74 @@ function renderPhoneInlineValidation_(wrap, digits) {
     }
 
     async function onSubmit() {
-      state.error = "";
-      if (!state.invite || !state.invite.invite_id) {
-        state.error = "Missing invite details. Please start again.";
+  state.error = "";
+  if (!state.invite || !state.invite.invite_id) {
+    state.error = "Missing invite details. Please start again.";
+    return render();
+  }
+
+  // Validate names if attending
+  let attendees = [];
+  if (state.attending === "yes") {
+    const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+    const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+
+    attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
+    if (attendees.length !== cnt || attendees.some(x => !x)) {
+      state.error = "Please fill in all attendee names.";
+      return render();
+    }
+  }
+
+  // Validate phone
+  if (!isValidPH09_(state.phoneDigits)) {
+    state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+    state.step = "phone";
+    return render();
+  }
+
+  // Validate transportation
+  if (state.transportation !== "Yes" && state.transportation !== "No") {
+    state.error = "Please choose Yes or No for transportation.";
+    state.step = "transpo";
+    return render();
+  }
+
+  const payload = {
+    invite_id: state.invite.invite_id,
+    attending: state.attending, // "yes" | "no"
+    attending_count: state.attending === "yes" ? Number(state.attendingCount || 1) : 0,
+    attendees: state.attending === "yes" ? attendees : [],
+    phone: toE164From09_(state.phoneDigits), // +63917xxxxxxx
+    transportation: state.transportation,    // "Yes" | "No"
+    notes: (state.notes || "").trim()
+  };
+
+  state.loading = true;
+  render();
+
+  try {
+    const data = await api("submit", payload);
+    state.loading = false;
+
+    if (!data || !data.ok) {
+      if (data && data.locked) {
+        state.contactLine = data.contact_line || state.contactLine || "";
+        state.step = "locked";
         return render();
       }
-
-      // Build attendees array:
-      // attendee #1 is invite_name (always)
-      // attendee #2..#N are extraNames
-      let attendees = [];
-      const inviteName = (state.invite.invite_name || "").trim();
-      if (inviteName) attendees.push(inviteName);
-
-      if (state.attending === "yes") {
-        const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
-        const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-
-        const neededExtra = Math.max(cnt - 1, 0);
-        const extras = (state.extraNames || []).slice(0, neededExtra).map(s => (s || "").trim());
-
-        for (let i = 0; i < extras.length; i++) {
-          if (!extras[i]) {
-            state.error = "Please fill in the additional attendee name(s).";
-            return render();
-          }
-          attendees.push(extras[i]);
-        }
-      } else {
-        // if declined, attendees array stays as [invite_name] but attending_count = 0; server will ignore
-      }
-
-      const payload = {
-        invite_id: state.invite.invite_id,
-        attending: state.attending, // "yes" | "no"
-        attending_count: state.attending === "yes" ? Number(state.attendingCount || 1) : 0,
-        attendees: state.attending === "yes" ? attendees.slice(0, CONFIG.maxSeatsCap) : [],
-        phone: toE164From09_(state.phoneDigits),
-        transportation: state.transportation,
-        notes: (state.notes || "").trim()
-      };
-
-      state.loading = true;
-      render();
-
-      try {
-        const data = await api("submit", payload);
-        state.loading = false;
-
-        if (!data || !data.ok) {
-          // If locked, show contact line
-          if (data && data.locked) {
-            state.contactLine = data.contact_line || state.contactLine || "";
-            state.step = "locked";
-            return render();
-          }
-          throw new Error(data && data.error ? data.error : "Submit failed.");
-        }
-
-        state.step = "thanks";
-        render();
-      } catch (err) {
-        state.loading = false;
-        state.error = String(err && err.message ? err.message : err);
-        render();
-      }
+      throw new Error(data && data.error ? data.error : "Submit failed.");
     }
+
+    state.step = "thanks";
+    render();
+  } catch (err) {
+    state.loading = false;
+    state.error = String(err && err.message ? err.message : err);
+    render();
+  }
+}
+
 
     /* ---------------- LOCKED ---------------- */
 
@@ -910,6 +875,15 @@ function renderPhoneInlineValidation_(wrap, digits) {
       return Math.min(Math.max(n, a), b);
     }
 
+    function syncAttendeeNames_(maxSeats) {
+  const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+  state.attendingCount = cnt;
+
+  const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
+  while (arr.length < cnt) arr.push("");
+  state.attendeeNames = arr;
+}
+
     function resetAll() {
       state.step = "find";
       state.loading = false;
@@ -920,7 +894,7 @@ function renderPhoneInlineValidation_(wrap, digits) {
       state.invite = null;
       state.attending = null;
       state.attendingCount = 1;
-      state.extraNames = [];
+      state.attendeeNames = [];
       state.transportation = null;
       state.phoneDigits = "";
       state.notes = "";
@@ -940,6 +914,26 @@ function renderPhoneInlineValidation_(wrap, digits) {
 
       try { window.close(); } catch (e) {}
     }
+function formatPH09_(digits) {
+  const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
+  const p1 = d.slice(0, 4);
+  const p2 = d.slice(4, 7);
+  const p3 = d.slice(7, 11);
+  if (d.length <= 4) return p1;
+  if (d.length <= 7) return `${p1} ${p2}`;
+  return `${p1} ${p2} ${p3}`;
+}
+
+function isValidPH09_(digits) {
+  const d = (digits || "").replace(/[^\d]/g, "");
+  return d.length === 11 && d.startsWith("09");
+}
+
+function toE164From09_(digits09) {
+  const d = (digits09 || "").replace(/[^\d]/g, "");
+  if (d.length !== 11 || !d.startsWith("09")) return "";
+  return "+63" + d.slice(1); // +63917xxxxxxx
+}
 
     resetAll();
   </script>
