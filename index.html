@@ -594,77 +594,102 @@
     /* ---------------- PHONE (+63) ---------------- */
 
     function renderPhone() {
-      setHeader("Mobile number", "Please share a PH mobile number in case we need to contact you.");
-      elCloseWrap.style.display = "none";
+  setHeader("Mobile number", "Please enter a PH mobile number in the format 09XX XXX XXXX.");
+  elCloseWrap.style.display = "none";
 
-      const wrap = document.createElement("div");
-      wrap.className = "row";
+  const wrap = document.createElement("div");
+  wrap.className = "row";
 
-      const label = document.createElement("label");
-      label.textContent = "Mobile number";
-      wrap.appendChild(label);
+  const label = document.createElement("label");
+  label.textContent = "Mobile number";
+  wrap.appendChild(label);
 
-      const inline = document.createElement("div");
-      inline.className = "inline";
+  const input = document.createElement("input");
+  input.type = "tel";
+  input.inputMode = "numeric";
+  input.placeholder = "09XX XXX XXXX";
+  input.value = formatPH09_(state.phoneDigits); // formatted display
+  input.autocomplete = "tel";
 
-      const prefix = document.createElement("input");
-      prefix.type = "text";
-      prefix.value = "+63";
-      prefix.disabled = true;
+  input.addEventListener("input", (e) => {
+    // keep digits only, max 11
+    const rawDigits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
 
-      const number = document.createElement("input");
-      number.type = "tel";
-      number.inputMode = "numeric";
-      number.placeholder = "9XXXXXXXXX";
-      number.value = state.phoneDigits;
-      number.addEventListener("input", (e) => {
-        state.phoneDigits = (e.target.value || "").replace(/[^\d]/g, "");
-      });
+    // update state with digits only
+    state.phoneDigits = rawDigits;
 
-      inline.appendChild(prefix);
-      inline.appendChild(number);
-      wrap.appendChild(inline);
+    // reformat and keep caret usable (simple approach)
+    e.target.value = formatPH09_(rawDigits);
 
-      const hint = document.createElement("div");
-      hint.className = "muted";
-      hint.textContent = "Example: +63 9171234567";
-      wrap.appendChild(hint);
+    // quick inline validation feedback (optional)
+    state.error = "";
+    renderPhoneInlineValidation_(wrap, rawDigits);
+  });
 
-      if (state.error) wrap.appendChild(errorEl(state.error));
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const back = document.createElement("button");
-      back.className = "secondary";
-      back.type = "button";
-      back.textContent = "Back";
-      back.addEventListener("click", () => {
-        state.error = "";
-        state.step = "transpo";
-        render();
-      });
-
-      const next = document.createElement("button");
-      next.className = "primary";
-      next.type = "button";
-      next.textContent = "Next";
-      next.addEventListener("click", () => {
-        state.error = "";
-        const digits = (state.phoneDigits || "").trim();
-        if (!digits) { state.error = "Please enter your mobile number."; return render(); }
-        if (digits.length < 10 || digits.length > 11) { state.error = "Please enter a valid PH mobile number."; return render(); }
-        state.step = "notes";
-        render();
-      });
-
-      btns.appendChild(back);
-      btns.appendChild(next);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
-      setTimeout(() => number.focus(), 0);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // trigger Next if valid
+      tryAdvancePhone_();
     }
+  });
+
+  wrap.appendChild(input);
+
+  const hint = document.createElement("div");
+  hint.className = "muted";
+  hint.textContent = "Example: 0917 123 4567";
+  wrap.appendChild(hint);
+
+  // error area (if any)
+  if (state.error) wrap.appendChild(errorEl(state.error));
+
+  const btns = document.createElement("div");
+  btns.className = "btns";
+
+  const back = document.createElement("button");
+  back.className = "secondary";
+  back.type = "button";
+  back.textContent = "Back";
+  back.addEventListener("click", () => {
+    state.error = "";
+    state.step = "transpo";
+    render();
+  });
+
+  const next = document.createElement("button");
+  next.className = "primary";
+  next.type = "button";
+  next.textContent = "Next";
+  next.addEventListener("click", tryAdvancePhone_);
+
+  btns.appendChild(back);
+  btns.appendChild(next);
+  wrap.appendChild(btns);
+
+  elContent.appendChild(wrap);
+
+  setTimeout(() => input.focus(), 0);
+
+  function tryAdvancePhone_() {
+    state.error = "";
+    const digits = (state.phoneDigits || "").trim();
+
+    if (!isValidPH09_(digits)) {
+      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+      return render();
+    }
+
+    state.step = "notes";
+    render();
+  }
+}
+
+function renderPhoneInlineValidation_(wrap, digits) {
+  // optional: no-op for now; keeping function so input handler stays clean
+  // You can add a subtle helper line here if you want.
+}
+
 
     /* ---------------- NOTES + SUBMIT ---------------- */
 
@@ -753,7 +778,7 @@
         attending: state.attending, // "yes" | "no"
         attending_count: state.attending === "yes" ? Number(state.attendingCount || 1) : 0,
         attendees: state.attending === "yes" ? attendees.slice(0, CONFIG.maxSeatsCap) : [],
-        phone: "+63" + (state.phoneDigits || "").trim(),
+        phone: toE164From09_(state.phoneDigits),
         transportation: state.transportation,
         notes: (state.notes || "").trim()
       };
