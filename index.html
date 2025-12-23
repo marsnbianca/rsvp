@@ -428,22 +428,23 @@
      * Uses POST with JSON body and expects JSON response.
      */
     async function api(action, payload) {
-      const res = await fetch(CONFIG.webAppUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...payload })
-      });
+  const res = await fetch(CONFIG.webAppUrl, {
+    method: "POST",
+    // IMPORTANT: text/plain avoids CORS preflight for Apps Script
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action, ...payload })
+  });
 
-      // Apps Script sometimes returns 200 with text when an exception occurs
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); }
-      catch (e) {
-        throw new Error("Non-JSON response from server. Check Web App URL and deployment permissions.");
-      }
-      if (!res.ok) throw new Error(data && data.error ? data.error : "Request failed.");
-      return data;
-    }
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch {
+    throw new Error("Non-JSON response from Apps Script. Check deployment + logs.");
+  }
+  if (!res.ok) throw new Error(data?.error || "Request failed.");
+  return data;
+}
+
 
     /**
      * ==========================================================
