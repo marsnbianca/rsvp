@@ -158,789 +158,752 @@
   </div>
 
   <script>
-    const CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
-      maxSeatsCap: 4
-    };
+  const CONFIG = {
+    webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
+    maxSeatsCap: 4
+  };
 
-    const state = {
-      step: "find",
-      loading: false,
-      error: "",
-      contactLine: "",
-      nameQuery: "",
-      matches: [],
-      selected: null, // from find: {invite_id, invite_name, max_seats, status, locked}
-      invite: null,   // from get
-      attending: null, // "yes" | "no"
-      attendingCount: 1,
-      attendeeNames: [], // attendee #1..#N
-      transportation: null, // "Yes" | "No"
-      phoneDigits: "",
-      notes: ""
-    };
+  const state = {
+    step: "find",
+    loading: false,
+    error: "",
+    contactLine: "",
+    nameQuery: "",
+    matches: [],
+    selected: null,
+    invite: null,
 
-    const elTitle = document.getElementById("title");
-    const elSubtitle = document.getElementById("subtitle");
-    const elContent = document.getElementById("content");
-    const elCloseWrap = document.getElementById("closeWrap");
-    const elCloseBtn = document.getElementById("closeBtn");
+    attending: null,          // "yes" | "no"
+    attendingCount: 1,
+    attendeeNames: [],        // attendee #1..#N
 
-    elCloseBtn.addEventListener("click", closeModal);
+    transportation: null,     // "Yes" | "No"
+    phoneDigits: "",          // raw digits for 09xxxxxxxxx
+    notes: ""
+  };
 
-    function render() {
-  elContent.innerHTML = "";
+  const elTitle = document.getElementById("title");
+  const elSubtitle = document.getElementById("subtitle");
+  const elContent = document.getElementById("content");
+  const elCloseWrap = document.getElementById("closeWrap");
+  const elCloseBtn = document.getElementById("closeBtn");
 
-  if (state.step === "find") return renderFind();
-  if (state.step === "pick") return renderPick();
-  if (state.step === "coming") return renderComing();
-  if (state.step === "transpo") return renderTranspo();
-  if (state.step === "phone") return renderPhone();
-  if (state.step === "notes") return renderNotes();
-  if (state.step === "locked") return renderLocked();
-  if (state.step === "thanks") return renderThanks();
+  elCloseBtn.addEventListener("click", closeModal);
 
-  // fallback
-  state.step = "find";
-  return renderFind();
-}
-
-    function setHeader(title, subtitle) {
-      elTitle.textContent = title;
-      elSubtitle.textContent = subtitle || "";
-    }
-
-    function loadingRow() {
-      const div = document.createElement("div");
-      div.className = "loading";
-      div.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Loading…</span>`;
-      return div;
-    }
-
-    async function api(action, payload) {
-  const res = await fetch(CONFIG.webAppUrl, {
-    method: "POST",
-    // Key change: text/plain avoids OPTIONS preflight in most browsers
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action, ...(payload || {}) })
-  });
-
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    return { ok: false, error: "Invalid server response.", raw: text };
+  function setHeader(title, subtitle) {
+    elTitle.textContent = title;
+    elSubtitle.textContent = subtitle || "";
   }
-}
 
-    /* ---------------- FIND ---------------- */
+  function errorEl(msg) {
+    const err = document.createElement("div");
+    err.className = "error";
+    err.textContent = msg;
+    return err;
+  }
 
-    function renderFind() {
-      setHeader("Find your invite", "Type the name on the invitation, then pick your match to continue.");
-      elCloseWrap.style.display = "none";
+  function pill(text, active, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pill" + (active ? " active" : "");
+    b.textContent = text;
+    b.addEventListener("click", onClick);
+    return b;
+  }
 
-      const wrap = document.createElement("div");
-      wrap.className = "row";
+  function clamp(n, a, b) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return a;
+    return Math.min(Math.max(x, a), b);
+  }
 
-      const label = document.createElement("label");
-      label.textContent = "Guest name";
-      wrap.appendChild(label);
+  function loadingRow() {
+    const div = document.createElement("div");
+    div.className = "loading";
+    div.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Loading…</span>`;
+    return div;
+  }
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Example: Maria Santos";
-      input.value = state.nameQuery;
-      input.autocomplete = "name";
-      input.addEventListener("input", (e) => state.nameQuery = e.target.value);
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
-      wrap.appendChild(input);
+  // CORS-safe request (no preflight)
+  async function api(action, payload) {
+    const res = await fetch(CONFIG.webAppUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, ...(payload || {}) })
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch (e) { return { ok: false, error: "Invalid server response.", raw: text }; }
+  }
 
-      if (state.loading) wrap.appendChild(loadingRow());
+  function syncAttendeeNames_(maxSeats) {
+    const cnt = clamp(state.attendingCount || 1, 1, maxSeats);
+    state.attendingCount = cnt;
 
-      if (state.error) wrap.appendChild(errorEl(state.error));
+    const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
+    while (arr.length < cnt) arr.push("");
+    state.attendeeNames = arr;
+  }
 
-      const btns = document.createElement("div");
-      btns.className = "btns";
+  function formatPH09_(digits) {
+    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
+    const p1 = d.slice(0, 4);
+    const p2 = d.slice(4, 7);
+    const p3 = d.slice(7, 11);
+    if (d.length <= 4) return p1;
+    if (d.length <= 7) return `${p1} ${p2}`;
+    return `${p1} ${p2} ${p3}`;
+  }
 
-      const btn = document.createElement("button");
-      btn.className = "primary";
-      btn.type = "button";
-      btn.textContent = "Find invite";
-      btn.disabled = state.loading;
-      btn.addEventListener("click", onFind);
+  function isValidPH09_(digits) {
+    const d = (digits || "").replace(/[^\d]/g, "");
+    return d.length === 11 && d.startsWith("09");
+  }
 
-      const clear = document.createElement("button");
-      clear.className = "secondary";
-      clear.type = "button";
-      clear.textContent = "Clear";
-      clear.disabled = state.loading;
-      clear.addEventListener("click", () => {
-        state.nameQuery = "";
-        state.matches = [];
-        state.error = "";
-        render();
-        input.focus();
-      });
+  function toE164From09_(digits09) {
+    const d = (digits09 || "").replace(/[^\d]/g, "");
+    if (d.length !== 11 || !d.startsWith("09")) return "";
+    return "+63" + d.slice(1); // +63917xxxxxxx
+  }
 
-      btns.appendChild(btn);
-      btns.appendChild(clear);
-      wrap.appendChild(btns);
+  function render() {
+    elContent.innerHTML = "";
 
-      elContent.appendChild(wrap);
-      setTimeout(() => input.focus(), 0);
-    }
+    if (state.step === "find") return renderFind();
+    if (state.step === "pick") return renderPick();
+    if (state.step === "coming") return renderComing();
+    if (state.step === "transpo") return renderTranspo();
+    if (state.step === "phone") return renderPhone();
+    if (state.step === "notes") return renderNotes();
+    if (state.step === "locked") return renderLocked();
+    if (state.step === "thanks") return renderThanks();
 
-    async function onFind() {
-      state.error = "";
-      const name = (state.nameQuery || "").trim();
-      if (!name) { state.error = "Please type a name first."; return render(); }
+    state.step = "find";
+    return renderFind();
+  }
 
-      state.loading = true;
-      render();
+  /* ---------------- FIND ---------------- */
 
-      try {
-        const data = await api("find", { name });
-        state.loading = false;
+  function renderFind() {
+    setHeader("Find your invite", "Type the name on the invitation, then pick your match to continue.");
+    elCloseWrap.style.display = "none";
 
-        if (!data || !data.ok) throw new Error(data && data.error ? data.error : "Search failed.");
-        state.contactLine = data.contact_line || "";
-        state.matches = Array.isArray(data.matches) ? data.matches : [];
+    const wrap = document.createElement("div");
+    wrap.className = "row";
 
-        if (state.matches.length === 0) {
-          state.error = "No match found. Try a different spelling, or include a first and last name.";
-          return render();
-        }
-
-        state.step = "pick";
-        render();
-      } catch (err) {
-        state.loading = false;
-        state.error = String(err && err.message ? err.message : err);
-        render();
-      }
-    }
-
-    /* ---------------- PICK ---------------- */
-
-    function renderPick() {
-      setHeader("Verify your name", "Select your name to continue.");
-      elCloseWrap.style.display = "none";
-
-      const wrap = document.createElement("div");
-      wrap.className = "row";
-
-      const list = document.createElement("div");
-      list.className = "list";
-
-      state.matches.forEach((m) => {
-        const item = document.createElement("div");
-        item.className = "item";
-
-        const left = document.createElement("div");
-        left.innerHTML = `<div class="itemName"></div><div class="tag"></div>`;
-        left.querySelector(".itemName").textContent = m.invite_name || "Unnamed guest";
-        const seats = Math.min(Number(m.max_seats || 1), CONFIG.maxSeatsCap);
-        left.querySelector(".tag").textContent = seats > 1 ? `Party of ${seats}` : "Single invite";
-
-        const right = document.createElement("div");
-        right.className = "tag";
-        right.textContent = "Select";
-
-        item.appendChild(left);
-        item.appendChild(right);
-
-        item.addEventListener("click", () => onPick(m));
-        list.appendChild(item);
-      });
-
-      wrap.appendChild(list);
-
-      if (state.loading) wrap.appendChild(loadingRow());
-      if (state.error) wrap.appendChild(errorEl(state.error));
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const back = document.createElement("button");
-      back.className = "secondary";
-      back.type = "button";
-      back.textContent = "Back";
-      back.disabled = state.loading;
-      back.addEventListener("click", () => {
-        state.error = "";
-        state.step = "find";
-        render();
-      });
-
-      btns.appendChild(back);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
-    }
-
-    async function onPick(m) {
-      state.error = "";
-      state.selected = m;
-      state.loading = true;
-      render();
-
-      try {
-        const data = await api("get", { invite_id: m.invite_id });
-        state.loading = false;
-
-        if (!data || !data.ok) throw new Error(data && data.error ? data.error : "Could not load invite.");
-
-        state.contactLine = data.contact_line || state.contactLine || "";
-        state.invite = data.invite || null;
-
-        if (!state.invite) throw new Error("Missing invite data.");
-
-        if (state.invite.locked) {
-          state.step = "locked";
-          return render();
-        }
-
-        // reset answers
-        state.attending = null;
-        state.attendingCount = 1;
-        state.extraNames = [];
-        state.transportation = null;
-        state.phoneDigits = "";
-        state.notes = "";
-
-        state.step = "coming";
-        render();
-      } catch (err) {
-        state.loading = false;
-        state.error = String(err && err.message ? err.message : err);
-        render();
-      }
-    }
-
-    /* ---------------- COMING ---------------- */
-
-    function renderComing() {
-  const inviteName = state.invite?.invite_name || "Guest";
-  const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
-
-  setHeader("RSVP", `${inviteName}, are you coming?`);
-  elCloseWrap.style.display = "none";
-
-  const wrap = document.createElement("div");
-  wrap.className = "row";
-
-  /* YES / NO */
-  const pills = document.createElement("div");
-  pills.className = "pillRow";
-
-  pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
-    state.attending = "yes";
-    state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
-    syncAttendeeNames_(maxSeats);
-    state.error = "";
-    render();
-  }));
-
-  pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
-    state.attending = "no";
-    state.attendingCount = 0;
-    state.attendeeNames = [];
-    state.error = "";
-    render();
-  }));
-
-  wrap.appendChild(pills);
-
-  /* IF YES → HOW MANY + ALL NAMES */
-  if (state.attending === "yes") {
     const label = document.createElement("label");
-    label.textContent = "How many people are attending?";
+    label.textContent = "Guest name";
     wrap.appendChild(label);
 
-    const select = document.createElement("select");
-    for (let i = 1; i <= maxSeats; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.textContent = i;
-      if (i === state.attendingCount) opt.selected = true;
-      select.appendChild(opt);
-    }
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Example: Maria Santos";
+    input.value = state.nameQuery;
+    input.addEventListener("input", (e) => state.nameQuery = e.target.value);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
+    wrap.appendChild(input);
 
-    select.addEventListener("change", (e) => {
-      state.attendingCount = Number(e.target.value);
-      syncAttendeeNames_(maxSeats);
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const btn = document.createElement("button");
+    btn.className = "primary";
+    btn.type = "button";
+    btn.textContent = "Find invite";
+    btn.disabled = state.loading;
+    btn.onclick = onFind;
+
+    const clear = document.createElement("button");
+    clear.className = "secondary";
+    clear.type = "button";
+    clear.textContent = "Clear";
+    clear.disabled = state.loading;
+    clear.onclick = () => {
+      state.nameQuery = "";
+      state.matches = [];
+      state.error = "";
       render();
-    });
+      input.focus();
+    };
 
-    wrap.appendChild(select);
+    btns.appendChild(btn);
+    btns.appendChild(clear);
+    wrap.appendChild(btns);
 
-    syncAttendeeNames_(maxSeats);
-
-    const note = document.createElement("div");
-    note.className = "muted";
-    note.textContent = "Please enter the full name of each attendee.";
-    wrap.appendChild(note);
-
-    for (let i = 0; i < state.attendingCount; i++) {
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = `Attendee ${i + 1} full name`;
-      input.value = state.attendeeNames[i] || "";
-      input.addEventListener("input", (e) => {
-        state.attendeeNames[i] = e.target.value;
-      });
-      wrap.appendChild(input);
-    }
+    elContent.appendChild(wrap);
+    setTimeout(() => input.focus(), 0);
   }
 
-  if (state.error) wrap.appendChild(errorEl(state.error));
-
-  /* BUTTONS */
-  const btns = document.createElement("div");
-  btns.className = "btns";
-
-  const back = document.createElement("button");
-  back.className = "secondary";
-  back.textContent = "Back";
-  back.onclick = () => {
+  async function onFind() {
     state.error = "";
-    state.step = "pick";
+    const name = (state.nameQuery || "").trim();
+    if (!name) { state.error = "Please type a name first."; return render(); }
+
+    state.loading = true;
     render();
-  };
 
-  const next = document.createElement("button");
-  next.className = "primary";
-  next.textContent = "Next";
-  next.onclick = () => {
-    state.error = "";
+    try {
+      const data = await api("find", { name });
+      state.loading = false;
 
-    if (state.attending !== "yes" && state.attending !== "no") {
-      state.error = "Please choose Yes or No.";
-      return render();
-    }
+      if (!data || !data.ok) throw new Error(data?.error || "Search failed.");
+      state.contactLine = data.contact_line || "";
+      state.matches = Array.isArray(data.matches) ? data.matches : [];
 
-    if (state.attending === "yes") {
-      const cleaned = state.attendeeNames
-        .slice(0, state.attendingCount)
-        .map(n => (n || "").trim());
-
-      if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
-        state.error = "Please fill in all attendee names.";
+      if (state.matches.length === 0) {
+        state.error = "No match found. Try a different spelling, or include a first and last name.";
         return render();
       }
-    }
 
-    state.step = "transpo";
-    render();
-  };
-
-  btns.appendChild(back);
-  btns.appendChild(next);
-  wrap.appendChild(btns);
-
-  elContent.appendChild(wrap);
-}
-
-    
-    /* ---------------- TRANSPO ---------------- */
-
-    function renderTranspo() {
-  setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
-  elCloseWrap.style.display = "none";
-
-  const wrap = document.createElement("div");
-  wrap.className = "row";
-
-  const pills = document.createElement("div");
-  pills.className = "pillRow";
-
-  pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; state.error=""; render(); }));
-  pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; state.error=""; render(); }));
-
-  wrap.appendChild(pills);
-
-  if (state.error) wrap.appendChild(errorEl(state.error));
-
-  const btns = document.createElement("div");
-  btns.className = "btns";
-
-  const back = document.createElement("button");
-  back.className = "secondary";
-  back.type = "button";
-  back.textContent = "Back";
-  back.onclick = () => {
-    state.error = "";
-    state.step = "coming";
-    render();
-  };
-
-  const next = document.createElement("button");
-  next.className = "primary";
-  next.type = "button";
-  next.textContent = "Next";
-  next.onclick = () => {
-    state.error = "";
-    if (state.transportation !== "Yes" && state.transportation !== "No") {
-      state.error = "Please choose Yes or No.";
-      return render();
-    }
-    state.step = "phone";
-    render();
-  };
-
-  btns.appendChild(back);
-  btns.appendChild(next);
-  wrap.appendChild(btns);
-
-  elContent.appendChild(wrap);
-}
-
-
-    /* ---------------- PHONE (+63) ---------------- */
-      function renderPhone() {
-  setHeader("Mobile number", "Please enter a PH mobile number in the format 09XX XXX XXXX.");
-  elCloseWrap.style.display = "none";
-
-  const wrap = document.createElement("div");
-  wrap.className = "row";
-
-  const label = document.createElement("label");
-  label.textContent = "Mobile number";
-  wrap.appendChild(label);
-
-  const input = document.createElement("input");
-  input.type = "tel";
-  input.inputMode = "numeric";
-  input.autocomplete = "tel";
-  input.placeholder = "09XX XXX XXXX";
-  input.value = formatPH09_(state.phoneDigits || "");
-
-  input.addEventListener("input", (e) => {
-    const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
-    state.phoneDigits = digits;
-    e.target.value = formatPH09_(digits);
-  });
-
-  wrap.appendChild(input);
-
-  const hint = document.createElement("div");
-  hint.className = "muted";
-  hint.textContent = "Example: 0917 123 4567";
-  wrap.appendChild(hint);
-
-  if (state.error) wrap.appendChild(errorEl(state.error));
-
-  const btns = document.createElement("div");
-  btns.className = "btns";
-
-  const back = document.createElement("button");
-  back.className = "secondary";
-  back.type = "button";
-  back.textContent = "Back";
-  back.onclick = () => {
-    state.error = "";
-    state.step = "transpo";
-    render();
-  };
-
-  const next = document.createElement("button");
-  next.className = "primary";
-  next.type = "button";
-  next.textContent = "Next";
-  next.onclick = () => {
-    state.error = "";
-    if (!isValidPH09_(state.phoneDigits || "")) {
-      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
-      return render();
-    }
-    state.step = "notes";
-    render();
-  };
-
-  btns.appendChild(back);
-  btns.appendChild(next);
-  wrap.appendChild(btns);
-
-  elContent.appendChild(wrap);
-  setTimeout(() => input.focus(), 0);
-}
-
-    /* ---------------- NOTES + SUBMIT ---------------- */
-
-    function renderNotes() {
-      setHeader("Additional notes", "Anything you want to share? (Optional)");
-      elCloseWrap.style.display = "none";
-
-      const wrap = document.createElement("div");
-      wrap.className = "row";
-
-      const label = document.createElement("label");
-      label.textContent = "Notes (optional)";
-      wrap.appendChild(label);
-
-      const ta = document.createElement("textarea");
-      ta.placeholder = "Dietary restrictions, timing notes, special requests, etc.";
-      ta.value = state.notes || "";
-      ta.addEventListener("input", (e) => state.notes = e.target.value);
-      wrap.appendChild(ta);
-
-      if (state.loading) wrap.appendChild(loadingRow());
-      if (state.error) wrap.appendChild(errorEl(state.error));
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const back = document.createElement("button");
-      back.className = "secondary";
-      back.type = "button";
-      back.textContent = "Back";
-      back.disabled = state.loading;
-      back.addEventListener("click", () => {
-        state.error = "";
-        state.step = "phone";
-        render();
-      });
-
-      const submit = document.createElement("button");
-      submit.className = "primary";
-      submit.type = "button";
-      submit.textContent = "Submit RSVP";
-      submit.disabled = state.loading;
-      submit.addEventListener("click", onSubmit);
-
-      btns.appendChild(back);
-      btns.appendChild(submit);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
-    }
-
-    async function onSubmit() {
-  state.error = "";
-  if (!state.invite || !state.invite.invite_id) {
-    state.error = "Missing invite details. Please start again.";
-    return render();
-  }
-
-  // Validate names if attending
-  let attendees = [];
-  if (state.attending === "yes") {
-    const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
-    const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-
-    attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
-    if (attendees.length !== cnt || attendees.some(x => !x)) {
-      state.error = "Please fill in all attendee names.";
-      return render();
+      state.step = "pick";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      render();
     }
   }
 
-  // Validate phone
-  if (!isValidPH09_(state.phoneDigits)) {
-    state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
-    state.step = "phone";
-    return render();
+  /* ---------------- PICK ---------------- */
+
+  function renderPick() {
+    setHeader("Verify your name", "Select your name to continue.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const list = document.createElement("div");
+    list.className = "list";
+
+    state.matches.forEach((m) => {
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const left = document.createElement("div");
+      left.innerHTML = `<div class="itemName"></div><div class="tag"></div>`;
+      left.querySelector(".itemName").textContent = m.invite_name || "Unnamed guest";
+      const seats = Math.min(Number(m.max_seats || 1), CONFIG.maxSeatsCap);
+      left.querySelector(".tag").textContent = seats > 1 ? `Party of ${seats}` : "Single invite";
+
+      const right = document.createElement("div");
+      right.className = "tag";
+      right.textContent = "Select";
+
+      item.appendChild(left);
+      item.appendChild(right);
+      item.onclick = () => onPick(m);
+
+      list.appendChild(item);
+    });
+
+    wrap.appendChild(list);
+
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.type = "button";
+    back.textContent = "Back";
+    back.disabled = state.loading;
+    back.onclick = () => { state.error = ""; state.step = "find"; render(); };
+
+    btns.appendChild(back);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
   }
 
-  // Validate transportation
-  if (state.transportation !== "Yes" && state.transportation !== "No") {
-    state.error = "Please choose Yes or No for transportation.";
-    state.step = "transpo";
-    return render();
-  }
+  async function onPick(m) {
+    state.error = "";
+    state.selected = m;
+    state.loading = true;
+    render();
 
-  const payload = {
-    invite_id: state.invite.invite_id,
-    attending: state.attending, // "yes" | "no"
-    attending_count: state.attending === "yes" ? Number(state.attendingCount || 1) : 0,
-    attendees: state.attending === "yes" ? attendees : [],
-    phone: toE164From09_(state.phoneDigits), // +63917xxxxxxx
-    transportation: state.transportation,    // "Yes" | "No"
-    notes: (state.notes || "").trim()
-  };
+    try {
+      const data = await api("get", { invite_id: m.invite_id });
+      state.loading = false;
 
-  state.loading = true;
-  render();
+      if (!data || !data.ok) throw new Error(data?.error || "Could not load invite.");
 
-  try {
-    const data = await api("submit", payload);
-    state.loading = false;
+      state.contactLine = data.contact_line || state.contactLine || "";
+      state.invite = data.invite || null;
 
-    if (!data || !data.ok) {
-      if (data && data.locked) {
-        state.contactLine = data.contact_line || state.contactLine || "";
+      if (!state.invite) throw new Error("Missing invite data.");
+
+      if (state.invite.locked) {
         state.step = "locked";
         return render();
       }
-      throw new Error(data && data.error ? data.error : "Submit failed.");
-    }
 
-    state.step = "thanks";
-    render();
-  } catch (err) {
-    state.loading = false;
-    state.error = String(err && err.message ? err.message : err);
-    render();
-  }
-}
-
-
-    /* ---------------- LOCKED ---------------- */
-
-    function renderLocked() {
-      setHeader("RSVP already received", "For changes, please contact the coordinator.");
-      elCloseWrap.style.display = "flex";
-
-      const wrap = document.createElement("div");
-      wrap.className = "row";
-
-      const msg = document.createElement("div");
-      msg.className = "muted";
-      msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
-      wrap.appendChild(msg);
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const startOver = document.createElement("button");
-      startOver.className = "secondary";
-      startOver.type = "button";
-      startOver.textContent = "Start over";
-      startOver.addEventListener("click", resetAll);
-
-      const close = document.createElement("button");
-      close.className = "primary";
-      close.type = "button";
-      close.textContent = "Close";
-      close.addEventListener("click", closeModal);
-
-      btns.appendChild(startOver);
-      btns.appendChild(close);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
-    }
-
-    /* ---------------- THANKS ---------------- */
-
-    function renderThanks() {
-      setHeader("Thank you!", "Your RSVP has been saved.");
-      elCloseWrap.style.display = "flex";
-
-      const wrap = document.createElement("div");
-      wrap.className = "row";
-
-      const msg = document.createElement("div");
-      msg.className = "muted";
-      msg.textContent = "You can close this window now.";
-      wrap.appendChild(msg);
-
-      const btns = document.createElement("div");
-      btns.className = "btns";
-
-      const startOver = document.createElement("button");
-      startOver.className = "secondary";
-      startOver.type = "button";
-      startOver.textContent = "Start over";
-      startOver.addEventListener("click", resetAll);
-
-      const close = document.createElement("button");
-      close.className = "primary";
-      close.type = "button";
-      close.textContent = "Close";
-      close.addEventListener("click", closeModal);
-
-      btns.appendChild(startOver);
-      btns.appendChild(close);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
-    }
-
-    /* ---------------- UTIL ---------------- */
-
-    function pill(text, active, onClick) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "pill" + (active ? " active" : "");
-      b.textContent = text;
-      b.addEventListener("click", onClick);
-      return b;
-    }
-
-    function errorEl(msg) {
-      const err = document.createElement("div");
-      err.className = "error";
-      err.textContent = msg;
-      return err;
-    }
-
-    function clamp(n, a, b) {
-      if (!Number.isFinite(n)) return a;
-      return Math.min(Math.max(n, a), b);
-    }
-
-    function syncAttendeeNames_(maxSeats) {
-  const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-  state.attendingCount = cnt;
-
-  const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
-  while (arr.length < cnt) arr.push("");
-  state.attendeeNames = arr;
-}
-
-    function resetAll() {
-      state.step = "find";
-      state.loading = false;
-      state.error = "";
-      state.nameQuery = "";
-      state.matches = [];
-      state.selected = null;
-      state.invite = null;
+      // reset answers
       state.attending = null;
       state.attendingCount = 1;
       state.attendeeNames = [];
       state.transportation = null;
       state.phoneDigits = "";
       state.notes = "";
+
+      state.step = "coming";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
       render();
     }
+  }
 
-    function closeModal() {
-      // Best-effort close inside Readymag iframe
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
-        }
-      } catch (e) {}
+  /* ---------------- COMING ---------------- */
 
-      const modal = document.getElementById("modal");
-      if (modal) modal.style.display = "none";
+  function renderComing() {
+    const inviteName = state.invite?.invite_name || "Guest";
+    const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
 
-      try { window.close(); } catch (e) {}
+    setHeader("RSVP", `${inviteName}, are you coming?`);
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const pills = document.createElement("div");
+    pills.className = "pillRow";
+
+    pills.appendChild(pill("Yes, I’m coming", state.attending === "yes", () => {
+      state.attending = "yes";
+      state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
+      syncAttendeeNames_(maxSeats);
+      state.error = "";
+      render();
+    }));
+
+    pills.appendChild(pill("No, can’t make it", state.attending === "no", () => {
+      state.attending = "no";
+      state.attendingCount = 0;
+      state.attendeeNames = [];
+      state.error = "";
+      render();
+    }));
+
+    wrap.appendChild(pills);
+
+    if (state.attending === "yes") {
+      const label = document.createElement("label");
+      label.textContent = "How many people are attending?";
+      wrap.appendChild(label);
+
+      const select = document.createElement("select");
+      for (let i = 1; i <= maxSeats; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
+        if (i === Number(state.attendingCount || 1)) opt.selected = true;
+        select.appendChild(opt);
+      }
+      select.onchange = (e) => {
+        state.attendingCount = Number(e.target.value);
+        syncAttendeeNames_(maxSeats);
+        render();
+      };
+      wrap.appendChild(select);
+
+      syncAttendeeNames_(maxSeats);
+
+      const note = document.createElement("div");
+      note.className = "muted";
+      note.textContent = "Please enter the full name of each attendee.";
+      wrap.appendChild(note);
+
+      for (let i = 0; i < state.attendingCount; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = `Attendee ${i + 1} full name`;
+        input.value = state.attendeeNames[i] || "";
+        input.oninput = (e) => { state.attendeeNames[i] = e.target.value; };
+        wrap.appendChild(input);
+      }
     }
-function formatPH09_(digits) {
-  const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
-  const p1 = d.slice(0, 4);
-  const p2 = d.slice(4, 7);
-  const p3 = d.slice(7, 11);
-  if (d.length <= 4) return p1;
-  if (d.length <= 7) return `${p1} ${p2}`;
-  return `${p1} ${p2} ${p3}`;
-}
 
-function isValidPH09_(digits) {
-  const d = (digits || "").replace(/[^\d]/g, "");
-  return d.length === 11 && d.startsWith("09");
-}
+    if (state.error) wrap.appendChild(errorEl(state.error));
 
-function toE164From09_(digits09) {
-  const d = (digits09 || "").replace(/[^\d]/g, "");
-  if (d.length !== 11 || !d.startsWith("09")) return "";
-  return "+63" + d.slice(1); // +63917xxxxxxx
-}
+    const btns = document.createElement("div");
+    btns.className = "btns";
 
-    resetAll();
-  </script>
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error = ""; state.step = "pick"; render(); };
+
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
+    next.onclick = () => {
+      state.error = "";
+
+      if (state.attending !== "yes" && state.attending !== "no") {
+        state.error = "Please choose Yes or No.";
+        return render();
+      }
+
+      if (state.attending === "yes") {
+        const cleaned = (state.attendeeNames || [])
+          .slice(0, state.attendingCount)
+          .map(n => (n || "").trim());
+
+        if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
+          state.error = "Please fill in all attendee names.";
+          return render();
+        }
+      }
+
+      state.step = "transpo";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  /* ---------------- TRANSPO ---------------- */
+
+  function renderTranspo() {
+    setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const pills = document.createElement("div");
+    pills.className = "pillRow";
+    pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; state.error=""; render(); }));
+    pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; state.error=""; render(); }));
+    wrap.appendChild(pills);
+
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error=""; state.step = "coming"; render(); };
+
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
+    next.onclick = () => {
+      state.error = "";
+      if (state.transportation !== "Yes" && state.transportation !== "No") {
+        state.error = "Please choose Yes or No.";
+        return render();
+      }
+      state.step = "phone";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  /* ---------------- PHONE ---------------- */
+
+  function renderPhone() {
+    setHeader("Mobile number", "Please enter a PH mobile number in the format 09XX XXX XXXX.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const label = document.createElement("label");
+    label.textContent = "Mobile number";
+    wrap.appendChild(label);
+
+    // This is the actual input. If you still see “no box”, it means this function is not running.
+    const input = document.createElement("input");
+    input.type = "tel";
+    input.inputMode = "numeric";
+    input.autocomplete = "tel";
+    input.placeholder = "09XX XXX XXXX";
+    input.value = formatPH09_(state.phoneDigits);
+
+    input.oninput = (e) => {
+      const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
+      state.phoneDigits = digits;
+      e.target.value = formatPH09_(digits);
+    };
+
+    wrap.appendChild(input);
+
+    const hint = document.createElement("div");
+    hint.className = "muted";
+    hint.textContent = "Example: 0917 123 4567";
+    wrap.appendChild(hint);
+
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error=""; state.step = "transpo"; render(); };
+
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
+    next.onclick = () => {
+      state.error = "";
+      if (!isValidPH09_(state.phoneDigits)) {
+        state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+        return render();
+      }
+      state.step = "notes";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+    setTimeout(() => input.focus(), 0);
+  }
+
+  /* ---------------- NOTES ---------------- */
+
+  function renderNotes() {
+    setHeader("Additional notes", "Anything you want to share? (Optional)");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const label = document.createElement("label");
+    label.textContent = "Notes (optional)";
+    wrap.appendChild(label);
+
+    const ta = document.createElement("textarea");
+    ta.placeholder = "Dietary restrictions, timing notes, special requests, etc.";
+    ta.value = state.notes || "";
+    ta.oninput = (e) => state.notes = e.target.value;
+    wrap.appendChild(ta);
+
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.disabled = state.loading;
+    back.onclick = () => { state.error=""; state.step = "phone"; render(); };
+
+    const submit = document.createElement("button");
+    submit.className = "primary";
+    submit.textContent = "Submit RSVP";
+    submit.disabled = state.loading;
+    submit.onclick = onSubmit;
+
+    btns.appendChild(back);
+    btns.appendChild(submit);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  async function onSubmit() {
+    state.error = "";
+
+    if (!state.invite?.invite_id) {
+      state.error = "Missing invite details. Please start again.";
+      state.step = "find";
+      return render();
+    }
+
+    if (state.attending !== "yes" && state.attending !== "no") {
+      state.error = "Please choose Yes or No.";
+      state.step = "coming";
+      return render();
+    }
+
+    if (state.transportation !== "Yes" && state.transportation !== "No") {
+      state.error = "Please choose Yes or No for transportation.";
+      state.step = "transpo";
+      return render();
+    }
+
+    if (!isValidPH09_(state.phoneDigits)) {
+      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+      state.step = "phone";
+      return render();
+    }
+
+    let attendees = [];
+    let attending_count = 0;
+
+    if (state.attending === "yes") {
+      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+      const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+
+      attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
+      if (attendees.length !== cnt || attendees.some(x => !x)) {
+        state.error = "Please fill in all attendee names.";
+        state.step = "coming";
+        return render();
+      }
+      attending_count = cnt;
+    }
+
+    const payload = {
+      invite_id: state.invite.invite_id,
+      attending: state.attending,
+      attending_count,
+      attendees: state.attending === "yes" ? attendees : [],
+      phone: toE164From09_(state.phoneDigits),
+      transportation: state.transportation,
+      notes: (state.notes || "").trim()
+    };
+
+    state.loading = true;
+    render();
+
+    try {
+      const data = await api("submit", payload);
+      state.loading = false;
+
+      if (!data || !data.ok) {
+        if (data && data.locked) {
+          state.contactLine = data.contact_line || state.contactLine || "";
+          state.step = "locked";
+          return render();
+        }
+        throw new Error(data?.error || "Submit failed.");
+      }
+
+      state.step = "thanks";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      render();
+    }
+  }
+
+  /* ---------------- LOCKED / THANKS ---------------- */
+
+  function renderLocked() {
+    setHeader("RSVP already received", "For changes, please contact the coordinator.");
+    elCloseWrap.style.display = "flex";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+    wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const startOver = document.createElement("button");
+    startOver.className = "secondary";
+    startOver.textContent = "Start over";
+    startOver.onclick = resetAll;
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(startOver);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderThanks() {
+    setHeader("Thank you!", "Your RSVP has been saved.");
+    elCloseWrap.style.display = "flex";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = "You can close this window now.";
+    wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const startOver = document.createElement("button");
+    startOver.className = "secondary";
+    startOver.textContent = "Start over";
+    startOver.onclick = resetAll;
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(startOver);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function resetAll() {
+    state.step = "find";
+    state.loading = false;
+    state.error = "";
+    state.nameQuery = "";
+    state.matches = [];
+    state.selected = null;
+    state.invite = null;
+
+    state.attending = null;
+    state.attendingCount = 1;
+    state.attendeeNames = [];
+
+    state.transportation = null;
+    state.phoneDigits = "";
+    state.notes = "";
+
+    render();
+  }
+
+  function closeModal() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+      }
+    } catch (e) {}
+    const modal = document.getElementById("modal");
+    if (modal) modal.style.display = "none";
+    try { window.close(); } catch (e) {}
+  }
+
+  resetAll();
+</script>
+
 </body>
 </html>
