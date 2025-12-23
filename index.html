@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RSVP</title>
+
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --panel:#11131a;
+      --panel2:#0f1117;
+      --text:#e9eef7;
+      --muted:#aab3c5;
+      --line:#23283a;
+      --accent:#7aa7ff;
+      --ok:#35d07f;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --shadow: 0 10px 40px rgba(0,0,0,.45);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(122,167,255,.25), transparent 55%),
+                  radial-gradient(900px 500px at 110% 10%, rgba(53,208,127,.18), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100dvh;
+      display:flex;
+      justify-content:center;
+      padding:28px 16px 56px;
+    }
+    a{color:var(--accent)}
+    .wrap{width:min(980px, 100%)}
+    header{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:16px;
+    }
+    header h1{
+      font-size: clamp(22px, 3vw, 30px);
+      margin:0;
+      letter-spacing:.2px;
+    }
+    header p{margin:0;color:var(--muted);line-height:1.45}
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      padding:12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.01);
+      flex-wrap:wrap;
+    }
+    .tab{
+      appearance:none;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    .tab[aria-selected="true"]{
+      border-color: rgba(122,167,255,.55);
+      background: rgba(122,167,255,.14);
+    }
+    .content{
+      padding:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    @media (max-width: 760px){
+      .grid{grid-template-columns: 1fr}
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    label{font-size:13px;color:var(--muted)}
+    input, select, textarea{
+      width:100%;
+      padding:12px 12px;
+      background: rgba(255,255,255,.02);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:96px;resize:vertical}
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(122,167,255,.7);
+      box-shadow: 0 0 0 3px rgba(122,167,255,.15);
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:12px;
+    }
+    .btn{
+      appearance:none;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:700;
+      letter-spacing:.2px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+    .btn.primary{
+      border-color: rgba(122,167,255,.6);
+      background: rgba(122,167,255,.16);
+    }
+    .btn.ok{
+      border-color: rgba(53,208,127,.6);
+      background: rgba(53,208,127,.16);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .hint{color:var(--muted);font-size:13px;line-height:1.45}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--muted);
+      font-size:13px;
+      margin-top:10px;
+      width:fit-content;
+    }
+    .pill strong{color:var(--text)}
+    .status{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--muted);
+      line-height:1.45;
+      display:none;
+    }
+    .status.show{display:block}
+    .status.ok{border-color: rgba(53,208,127,.45); background: rgba(53,208,127,.10); color:#c8ffe2}
+    .status.warn{border-color: rgba(255,204,102,.45); background: rgba(255,204,102,.10); color:#fff1cc}
+    .status.bad{border-color: rgba(255,107,107,.50); background: rgba(255,107,107,.10); color:#ffe0e0}
+
+    /* Modal */
+    .overlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(8px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index: 999;
+    }
+    .overlay.show{display:flex}
+    .modal{
+      width:min(720px, 100%);
+      background: var(--panel);
+      border:1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal header{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.01);
+    }
+    .modal header h2{
+      margin:0;
+      font-size: 18px;
+    }
+    .modal .body{
+      padding:16px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 760px){
+      .modal .body{grid-template-columns: 1fr}
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .choice{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius: 14px;
+      padding:12px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .choice:hover{border-color: rgba(122,167,255,.55)}
+    .choice .top{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .choice .name{font-weight:800}
+    .choice .meta{color:var(--muted); font-size:13px}
+    .modal .side{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius: 14px;
+      padding:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .modal .footer{
+      padding:12px 16px;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .divider{height:1px;background:var(--line);margin:14px 0}
+    .small{font-size:12px;color:var(--muted)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>RSVP</h1>
+      <p>Find your invite, confirm your party, and submit your RSVP.</p>
+    </header>
+
+    <section class="card" role="region" aria-label="RSVP card">
+      <nav class="tabs" role="tablist" aria-label="RSVP tabs">
+        <button class="tab" id="tab-find" role="tab" aria-selected="true" aria-controls="panel-find">Find your invite</button>
+        <button class="tab" id="tab-rsvp" role="tab" aria-selected="false" aria-controls="panel-rsvp" disabled>RSVP</button>
+        <button class="tab" id="tab-help" role="tab" aria-selected="false" aria-controls="panel-help">Help</button>
+      </nav>
+
+      <div class="content">
+        <!-- FIND PANEL -->
+        <div id="panel-find" role="tabpanel" aria-labelledby="tab-find">
+          <div class="grid">
+            <div class="field">
+              <label for="qName">Name on invite</label>
+              <input id="qName" autocomplete="name" placeholder="e.g., Bianca Matira" />
+              <div class="hint">Tip: try first name + last name as shown on the invite.</div>
+            </div>
+
+            <div class="field">
+              <label for="qEmail">Email (optional)</label>
+              <input id="qEmail" autocomplete="email" placeholder="e.g., you@email.com" />
+              <div class="hint">If your name matches multiple invites, email can help narrow it down.</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn primary" id="btnFind">Find my invite</button>
+            <button class="btn" id="btnClearFind" type="button">Clear</button>
+          </div>
+
+          <div id="findStatus" class="status" aria-live="polite"></div>
+
+          <div class="divider"></div>
+          <div class="hint">
+            After you find your invite, you will be able to RSVP on the next tab.
+          </div>
+
+          <div class="pill" id="selectedPill" style="display:none;">
+            <span>Selected:</span> <strong id="selectedName"></strong>
+          </div>
+
+          <div class="small" style="margin-top:10px;">
+            Powered by Google Sheets
+          </div>
+        </div>
+
+        <!-- RSVP PANEL -->
+        <div id="panel-rsvp" role="tabpanel" aria-labelledby="tab-rsvp" hidden>
+          <div id="inviteSummary" class="pill" style="display:none;">
+            <span>Invite:</span> <strong id="inviteSummaryText"></strong>
+          </div>
+
+          <div id="lockoutBox" class="status warn" style="display:none;">
+            This invite has already been submitted and is locked.
+          </div>
+
+          <div class="grid" style="margin-top:12px;">
+            <div class="field">
+              <label for="attending">Will you be attending?</label>
+              <select id="attending">
+                <option value="">Select one</option>
+                <option value="YES">Yes, happily</option>
+                <option value="NO">No, sadly cannot</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="guestCount">Number attending in your party</label>
+              <select id="guestCount"></select>
+              <div class="hint" id="guestHint"></div>
+            </div>
+          </div>
+
+          <div class="grid" style="margin-top:14px;">
+            <div class="field">
+              <label for="dietary">Dietary restrictions (optional)</label>
+              <textarea id="dietary" placeholder="e.g., vegetarian, nut allergy, halal"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="notes">Notes (optional)</label>
+              <textarea id="notes" placeholder="Anything you want us to know"></textarea>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn ok" id="btnSubmit">Submit RSVP</button>
+            <button class="btn" id="btnBackToFind" type="button">Back</button>
+          </div>
+
+          <div id="rsvpStatus" class="status" aria-live="polite"></div>
+        </div>
+
+        <!-- HELP PANEL -->
+        <div id="panel-help" role="tabpanel" aria-labelledby="tab-help" hidden>
+          <p class="hint" style="margin-top:0;">
+            If you cannot find your invite:
+          </p>
+          <ul class="hint">
+            <li>Try the name exactly as it appears on the invite.</li>
+            <li>Try just the last name if you are unsure.</li>
+            <li>If multiple results appear, select the correct household/party.</li>
+            <li>If it still does not work, contact the couple.</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <div class="hint">
+            Admin note (for you/dev): set your Apps Script Web App URL in <span class="mono">CONFIG.webAppUrl</span>.
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MULTI-MATCH MODAL -->
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <header>
+        <h2 id="modalTitle">Multiple invites found</h2>
+        <p class="hint" style="margin:6px 0 0;">Select the one that matches you.</p>
+      </header>
+      <div class="body">
+        <div class="list" id="choices"></div>
+        <aside class="side">
+          <div style="font-weight:800;color:var(--text);margin-bottom:6px;">How to choose</div>
+          <div>
+            Pick the entry that matches your household or the invite party you are part of.
+            If you are unsure, try adding your email on the Find tab and search again.
+          </div>
+          <div class="divider"></div>
+          <div class="small">
+            This modal is responsive and stacks on mobile.
+          </div>
+        </aside>
+      </div>
+      <div class="footer">
+        <button class="btn" id="btnModalClose" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ==========================================================
+     * CONFIG
+     * ==========================================================
+     * 1) Deploy Apps Script as Web App (you already did)
+     * 2) Paste the Web App URL below (ends with /exec)
+     * 3) Ensure your Apps Script supports these actions:
+     *    - findInvites: { name, email? } -> { ok, matches:[{ inviteId, displayName, partyName?, city?, maxGuests?, locked?, rsvpStatus? }] }
+     *    - getInvite: { inviteId } -> { ok, invite:{ inviteId, displayName, partyName?, maxGuests, locked, rsvpStatus, existing:{ attending, guestCount, dietary, notes }? } }
+     *    - submitRsvp: { inviteId, attending, guestCount, dietary?, notes? } -> { ok, locked:true, message? }
+     *
+     * If your current Apps Script uses different parameter names, adapt `api()` + handlers.
+     */
+    const CONFIG = {
+      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec"
+    };
+
+    /**
+     * Small helper for calling Apps Script Web App.
+     * Uses POST with JSON body and expects JSON response.
+     */
+    async function api(action, payload) {
+      const res = await fetch(CONFIG.webAppUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...payload })
+      });
+
+      // Apps Script sometimes returns 200 with text when an exception occurs
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch (e) {
+        throw new Error("Non-JSON response from server. Check Web App URL and deployment permissions.");
+      }
+      if (!res.ok) throw new Error(data && data.error ? data.error : "Request failed.");
+      return data;
+    }
+
+    /**
+     * ==========================================================
+     * UI STATE
+     * ==========================================================
+     */
+    const state = {
+      inviteId: null,
+      invite: null,
+      matches: []
+    };
+
+    const els = {
+      // tabs + panels
+      tabFind: document.getElementById("tab-find"),
+      tabRsvp: document.getElementById("tab-rsvp"),
+      tabHelp: document.getElementById("tab-help"),
+      panelFind: document.getElementById("panel-find"),
+      panelRsvp: document.getElementById("panel-rsvp"),
+      panelHelp: document.getElementById("panel-help"),
+
+      // find
+      qName: document.getElementById("qName"),
+      qEmail: document.getElementById("qEmail"),
+      btnFind: document.getElementById("btnFind"),
+      btnClearFind: document.getElementById("btnClearFind"),
+      findStatus: document.getElementById("findStatus"),
+      selectedPill: document.getElementById("selectedPill"),
+      selectedName: document.getElementById("selectedName"),
+
+      // modal
+      overlay: document.getElementById("overlay"),
+      choices: document.getElementById("choices"),
+      btnModalClose: document.getElementById("btnModalClose"),
+
+      // rsvp
+      inviteSummary: document.getElementById("inviteSummary"),
+      inviteSummaryText: document.getElementById("inviteSummaryText"),
+      lockoutBox: document.getElementById("lockoutBox"),
+      attending: document.getElementById("attending"),
+      guestCount: document.getElementById("guestCount"),
+      guestHint: document.getElementById("guestHint"),
+      dietary: document.getElementById("dietary"),
+      notes: document.getElementById("notes"),
+      btnSubmit: document.getElementById("btnSubmit"),
+      btnBackToFind: document.getElementById("btnBackToFind"),
+      rsvpStatus: document.getElementById("rsvpStatus")
+    };
+
+    function setStatus(el, kind, msg) {
+      el.className = "status show";
+      if (kind) el.classList.add(kind);
+      el.textContent = msg;
+    }
+    function clearStatus(el) {
+      el.className = "status";
+      el.textContent = "";
+    }
+
+    function switchTab(tab) {
+      const map = [
+        { tab: els.tabFind, panel: els.panelFind },
+        { tab: els.tabRsvp, panel: els.panelRsvp },
+        { tab: els.tabHelp, panel: els.panelHelp }
+      ];
+      map.forEach(x => {
+        const active = (x.tab === tab);
+        x.tab.setAttribute("aria-selected", active ? "true" : "false");
+        x.panel.hidden = !active;
+      });
+    }
+
+    function openModal(matches) {
+      els.choices.innerHTML = "";
+      matches.forEach(m => {
+        const item = document.createElement("div");
+        item.className = "choice";
+        item.tabIndex = 0;
+
+        const top = document.createElement("div");
+        top.className = "top";
+
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = m.displayName || "Invite";
+
+        const right = document.createElement("div");
+        right.className = "meta";
+        const bits = [];
+        if (m.partyName) bits.push(m.partyName);
+        if (m.city) bits.push(m.city);
+        right.textContent = bits.join(" • ");
+
+        top.appendChild(name);
+        top.appendChild(right);
+
+        const meta2 = document.createElement("div");
+        meta2.className = "meta";
+        const bits2 = [];
+        if (Number.isFinite(m.maxGuests)) bits2.push(`Max guests: ${m.maxGuests}`);
+        if (m.locked) bits2.push("Locked");
+        if (m.rsvpStatus) bits2.push(`Status: ${m.rsvpStatus}`);
+        meta2.textContent = bits2.join(" • ");
+
+        item.appendChild(top);
+        if (meta2.textContent) item.appendChild(meta2);
+
+        item.addEventListener("click", () => chooseInvite(m.inviteId));
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") chooseInvite(m.inviteId);
+        });
+
+        els.choices.appendChild(item);
+      });
+
+      els.overlay.classList.add("show");
+      // basic focus management
+      setTimeout(() => {
+        const first = els.choices.querySelector(".choice");
+        if (first) first.focus();
+      }, 0);
+    }
+
+    function closeModal() {
+      els.overlay.classList.remove("show");
+    }
+
+    function fillGuestCount(maxGuests) {
+      els.guestCount.innerHTML = "";
+      const opt0 = document.createElement("option");
+      opt0.value = "";
+      opt0.textContent = "Select";
+      els.guestCount.appendChild(opt0);
+
+      const n = Math.max(1, Number(maxGuests || 1));
+      for (let i = 1; i <= n; i++) {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = String(i);
+        els.guestCount.appendChild(opt);
+      }
+      els.guestHint.textContent = `Your invite allows up to ${n} guest${n === 1 ? "" : "s"}.`;
+    }
+
+    function setLockout(locked) {
+      els.lockoutBox.style.display = locked ? "block" : "none";
+      // lock form inputs
+      [els.attending, els.guestCount, els.dietary, els.notes, els.btnSubmit].forEach(x => {
+        x.disabled = !!locked;
+      });
+    }
+
+    function ensureConfigured() {
+      if (!CONFIG.webAppUrl || CONFIG.webAppUrl.includes("PASTE_YOUR")) {
+        setStatus(els.findStatus, "warn", "Config needed: paste your Apps Script Web App URL into CONFIG.webAppUrl in this index.html.");
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * ==========================================================
+     * ACTIONS
+     * ==========================================================
+     */
+    async function handleFind() {
+      clearStatus(els.findStatus);
+      clearStatus(els.rsvpStatus);
+
+      if (!ensureConfigured()) return;
+
+      const name = (els.qName.value || "").trim();
+      const email = (els.qEmail.value || "").trim();
+
+      if (!name) {
+        setStatus(els.findStatus, "warn", "Please enter the name on the invite.");
+        return;
+      }
+
+      els.btnFind.disabled = true;
+      els.btnFind.textContent = "Searching...";
+
+      try {
+        const data = await api("findInvites", { name, email });
+        if (!data.ok) {
+          setStatus(els.findStatus, "bad", data.error || "Could not search. Please try again.");
+          return;
+        }
+
+        const matches = Array.isArray(data.matches) ? data.matches : [];
+        state.matches = matches;
+
+        if (matches.length === 0) {
+          setStatus(els.findStatus, "warn", "No match found. Try a different spelling, or add your email and search again.");
+          return;
+        }
+
+        if (matches.length === 1) {
+          await chooseInvite(matches[0].inviteId);
+          return;
+        }
+
+        setStatus(els.findStatus, "ok", `We found ${matches.length} possible matches. Please choose the correct one.`);
+        openModal(matches);
+
+      } catch (err) {
+        setStatus(els.findStatus, "bad", err.message || "Something went wrong.");
+      } finally {
+        els.btnFind.disabled = false;
+        els.btnFind.textContent = "Find my invite";
+      }
+    }
+
+    async function chooseInvite(inviteId) {
+      closeModal();
+      clearStatus(els.findStatus);
+      clearStatus(els.rsvpStatus);
+
+      els.btnFind.disabled = true;
+
+      try {
+        const data = await api("getInvite", { inviteId });
+        if (!data.ok || !data.invite) {
+          setStatus(els.findStatus, "bad", data.error || "Could not load that invite.");
+          return;
+        }
+
+        state.inviteId = inviteId;
+        state.invite = data.invite;
+
+        // update pills + enable RSVP tab
+        const display = data.invite.displayName || "Invite selected";
+        els.selectedPill.style.display = "inline-flex";
+        els.selectedName.textContent = display;
+
+        els.tabRsvp.disabled = false;
+
+        // populate RSVP panel
+        els.inviteSummary.style.display = "inline-flex";
+        const party = data.invite.partyName ? ` (${data.invite.partyName})` : "";
+        els.inviteSummaryText.textContent = `${display}${party}`;
+
+        fillGuestCount(data.invite.maxGuests);
+
+        // existing data
+        const existing = data.invite.existing || null;
+        if (existing) {
+          els.attending.value = existing.attending || "";
+          els.guestCount.value = existing.guestCount ? String(existing.guestCount) : "";
+          els.dietary.value = existing.dietary || "";
+          els.notes.value = existing.notes || "";
+        } else {
+          els.attending.value = "";
+          els.guestCount.value = "";
+          els.dietary.value = "";
+          els.notes.value = "";
+        }
+
+        const locked = !!data.invite.locked;
+        setLockout(locked);
+
+        // move to RSVP tab
+        switchTab(els.tabRsvp);
+
+      } catch (err) {
+        setStatus(els.findStatus, "bad", err.message || "Something went wrong.");
+      } finally {
+        els.btnFind.disabled = false;
+      }
+    }
+
+    async function handleSubmit() {
+      clearStatus(els.rsvpStatus);
+
+      if (!ensureConfigured()) return;
+      if (!state.inviteId) {
+        setStatus(els.rsvpStatus, "warn", "Please find and select your invite first.");
+        return;
+      }
+
+      const attending = els.attending.value;
+      const guestCount = els.guestCount.value;
+      const dietary = (els.dietary.value || "").trim();
+      const notes = (els.notes.value || "").trim();
+
+      if (!attending) {
+        setStatus(els.rsvpStatus, "warn", "Please select whether you are attending.");
+        return;
+      }
+      if (!guestCount) {
+        setStatus(els.rsvpStatus, "warn", "Please select how many guests are attending in your party.");
+        return;
+      }
+
+      els.btnSubmit.disabled = true;
+      els.btnSubmit.textContent = "Submitting...";
+
+      try {
+        const data = await api("submitRsvp", {
+          inviteId: state.inviteId,
+          attending,
+          guestCount: Number(guestCount),
+          dietary,
+          notes
+        });
+
+        if (!data.ok) {
+          setStatus(els.rsvpStatus, "bad", data.error || "Could not submit. Please try again.");
+          return;
+        }
+
+        setStatus(els.rsvpStatus, "ok", data.message || "Thank you. Your RSVP has been submitted.");
+
+        // lockout after successful submit (your script should also enforce server-side lock)
+        setLockout(true);
+
+      } catch (err) {
+        setStatus(els.rsvpStatus, "bad", err.message || "Something went wrong.");
+      } finally {
+        els.btnSubmit.disabled = false;
+        els.btnSubmit.textContent = "Submit RSVP";
+      }
+    }
+
+    /**
+     * ==========================================================
+     * EVENTS
+     * ==========================================================
+     */
+    els.tabFind.addEventListener("click", () => switchTab(els.tabFind));
+    els.tabRsvp.addEventListener("click", () => { if (!els.tabRsvp.disabled) switchTab(els.tabRsvp); });
+    els.tabHelp.addEventListener("click", () => switchTab(els.tabHelp));
+
+    els.btnFind.addEventListener("click", handleFind);
+    els.btnClearFind.addEventListener("click", () => {
+      els.qName.value = "";
+      els.qEmail.value = "";
+      state.inviteId = null;
+      state.invite = null;
+      state.matches = [];
+      els.selectedPill.style.display = "none";
+      els.tabRsvp.disabled = true;
+      clearStatus(els.findStatus);
+      clearStatus(els.rsvpStatus);
+      switchTab(els.tabFind);
+    });
+
+    els.btnBackToFind.addEventListener("click", () => switchTab(els.tabFind));
+    els.btnSubmit.addEventListener("click", handleSubmit);
+
+    // Modal close behaviors
+    els.btnModalClose.addEventListener("click", closeModal);
+    els.overlay.addEventListener("click", (e) => { if (e.target === els.overlay) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+    // Enter-to-search on Find tab
+    [els.qName, els.qEmail].forEach(inp => {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleFind();
+      });
+    });
+
+    // Auto-adjust guestCount if attending NO
+    els.attending.addEventListener("change", () => {
+      if (els.attending.value === "NO") {
+        els.guestCount.value = "1";
+      }
+    });
+  </script>
+</body>
+</html>
