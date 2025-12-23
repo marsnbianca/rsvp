@@ -216,14 +216,17 @@
     async function api(action, payload) {
   const res = await fetch(CONFIG.webAppUrl, {
     method: "POST",
-    // IMPORTANT: avoid CORS preflight by using text/plain
+    // Key change: text/plain avoids OPTIONS preflight in most browsers
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action, ...(payload || {}) })
   });
 
   const text = await res.text();
-  try { return JSON.parse(text); }
-  catch (e) { return { ok: false, error: "Invalid server response.", raw: text }; }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return { ok: false, error: "Invalid server response.", raw: text };
+  }
 }
 
     /* ---------------- FIND ---------------- */
