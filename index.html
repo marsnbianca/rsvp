@@ -189,17 +189,21 @@
     elCloseBtn.addEventListener("click", closeModal);
 
     function render() {
-      elContent.innerHTML = "";
+  elContent.innerHTML = "";
 
-      if (state.step === "find") return renderFind();
-      if (state.step === "pick") return renderPick();
-      if (state.step === "coming") return renderComing();
-      if (state.step === "transpo") return renderTranspo();
-      if (state.step === "phone") return renderPhone();
-      if (state.step === "notes") return renderNotes();
-      if (state.step === "locked") return renderLocked();
-      if (state.step === "thanks") return renderThanks();
-    }
+  if (state.step === "find") return renderFind();
+  if (state.step === "pick") return renderPick();
+  if (state.step === "coming") return renderComing();
+  if (state.step === "transpo") return renderTranspo();
+  if (state.step === "phone") return renderPhone();
+  if (state.step === "notes") return renderNotes();
+  if (state.step === "locked") return renderLocked();
+  if (state.step === "thanks") return renderThanks();
+
+  // fallback
+  state.step = "find";
+  return renderFind();
+}
 
     function setHeader(title, subtitle) {
       elTitle.textContent = title;
@@ -541,59 +545,59 @@
     /* ---------------- TRANSPO ---------------- */
 
     function renderTranspo() {
-      setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
-      elCloseWrap.style.display = "none";
+  setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
+  elCloseWrap.style.display = "none";
 
-      const wrap = document.createElement("div");
-      wrap.className = "row";
+  const wrap = document.createElement("div");
+  wrap.className = "row";
 
-      const pills = document.createElement("div");
-      pills.className = "pillRow";
+  const pills = document.createElement("div");
+  pills.className = "pillRow";
 
-      pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; render(); }));
-      pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; render(); }));
+  pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; state.error=""; render(); }));
+  pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; state.error=""; render(); }));
 
-      wrap.appendChild(pills);
+  wrap.appendChild(pills);
 
-      if (state.error) wrap.appendChild(errorEl(state.error));
+  if (state.error) wrap.appendChild(errorEl(state.error));
 
-      const btns = document.createElement("div");
-      btns.className = "btns";
+  const btns = document.createElement("div");
+  btns.className = "btns";
 
-      const back = document.createElement("button");
-      back.className = "secondary";
-      back.type = "button";
-      back.textContent = "Back";
-      back.addEventListener("click", () => {
-        state.error = "";
-        state.step = "coming";
-        render();
-      });
+  const back = document.createElement("button");
+  back.className = "secondary";
+  back.type = "button";
+  back.textContent = "Back";
+  back.onclick = () => {
+    state.error = "";
+    state.step = "coming";
+    render();
+  };
 
-      const next = document.createElement("button");
-      next.className = "primary";
-      next.type = "button";
-      next.textContent = "Next";
-      next.addEventListener("click", () => {
-        state.error = "";
-        if (state.transportation !== "Yes" && state.transportation !== "No") {
-          state.error = "Please choose Yes or No.";
-          return render();
-        }
-        state.step = "phone";
-        render();
-      });
-
-      btns.appendChild(back);
-      btns.appendChild(next);
-      wrap.appendChild(btns);
-
-      elContent.appendChild(wrap);
+  const next = document.createElement("button");
+  next.className = "primary";
+  next.type = "button";
+  next.textContent = "Next";
+  next.onclick = () => {
+    state.error = "";
+    if (state.transportation !== "Yes" && state.transportation !== "No") {
+      state.error = "Please choose Yes or No.";
+      return render();
     }
+    state.step = "phone";
+    render();
+  };
+
+  btns.appendChild(back);
+  btns.appendChild(next);
+  wrap.appendChild(btns);
+
+  elContent.appendChild(wrap);
+}
+
 
     /* ---------------- PHONE (+63) ---------------- */
-
-    function renderPhone() {
+      function renderPhone() {
   setHeader("Mobile number", "Please enter a PH mobile number in the format 09XX XXX XXXX.");
   elCloseWrap.style.display = "none";
 
@@ -609,7 +613,7 @@
   input.inputMode = "numeric";
   input.autocomplete = "tel";
   input.placeholder = "09XX XXX XXXX";
-  input.value = formatPH09_(state.phoneDigits);
+  input.value = formatPH09_(state.phoneDigits || "");
 
   input.addEventListener("input", (e) => {
     const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
@@ -617,12 +621,14 @@
     e.target.value = formatPH09_(digits);
   });
 
-  if (state.error) wrap.appendChild(errorEl(state.error));
+  wrap.appendChild(input);
 
   const hint = document.createElement("div");
   hint.className = "muted";
   hint.textContent = "Example: 0917 123 4567";
   wrap.appendChild(hint);
+
+  if (state.error) wrap.appendChild(errorEl(state.error));
 
   const btns = document.createElement("div");
   btns.className = "btns";
@@ -643,7 +649,7 @@
   next.textContent = "Next";
   next.onclick = () => {
     state.error = "";
-    if (!isValidPH09_(state.phoneDigits)) {
+    if (!isValidPH09_(state.phoneDigits || "")) {
       state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
       return render();
     }
@@ -658,7 +664,6 @@
   elContent.appendChild(wrap);
   setTimeout(() => input.focus(), 0);
 }
-
 
     /* ---------------- NOTES + SUBMIT ---------------- */
 
