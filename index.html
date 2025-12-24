@@ -31,7 +31,6 @@
       color:var(--text);
     }
 
-    /* Overlay */
     #overlay{
       position:fixed;
       inset:0;
@@ -39,7 +38,6 @@
       z-index: 9998;
     }
 
-    /* Modal */
     #modal{
       position: fixed;
       left: 50%;
@@ -131,7 +129,6 @@
       text-align:center;
     }
 
-    /* Buttons */
     .btns{
       display:flex;
       gap:12px;
@@ -175,7 +172,6 @@
       cursor:not-allowed;
     }
 
-    /* Yes/No pills */
     .pillRow{
       display:flex;
       gap:10px;
@@ -205,7 +201,6 @@
       border-color: var(--pillActiveBorder);
     }
 
-    /* Name pick list */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -235,7 +230,6 @@
       border-color:#c9cada;
     }
 
-    /* Loading dots */
     .loading{
       display:flex;
       align-items:center;
@@ -260,26 +254,6 @@
     @keyframes b{
       0%,80%,100%{transform:scale(.7); opacity:.6}
       40%{transform:scale(1.1); opacity:1}
-    }
-
-    /* Close bar (unused here, kept for compatibility) */
-    #closeWrap{
-      padding:12px 18px 16px;
-      border-top:1px solid var(--line);
-      display:none;
-      justify-content:center;
-    }
-
-    #closeBtn{
-      background:#ffffff;
-      border:1.5px solid var(--line);
-      color:var(--text);
-      min-width:180px;
-    }
-
-    #closeBtn:hover{
-      background:#f0f1f6;
-      border-color:#c9cada;
     }
 
     @media (max-width: 420px){
@@ -307,10 +281,6 @@
     </div>
 
     <div id="content"></div>
-
-    <div id="closeWrap">
-      <button id="closeBtn">Close</button>
-    </div>
   </div>
 
 <script>
@@ -328,11 +298,11 @@
     matches: [],
     invite: null,
 
-    attending: null,          // "yes" | "no"
+    attending: null,
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,     // "Yes" | "No"
+    transportation: null,
     phoneDigits: "",
     notes: ""
   };
@@ -340,10 +310,6 @@
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
   const elContent = document.getElementById("content");
-  const elCloseWrap = document.getElementById("closeWrap");
-  const elCloseBtn = document.getElementById("closeBtn");
-
-  if (elCloseBtn) elCloseBtn.addEventListener("click", closeModal);
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -379,7 +345,6 @@
     return div;
   }
 
-  // CORS-safe request (no preflight)
   async function api(action, payload) {
     const res = await fetch(CONFIG.webAppUrl, {
       method: "POST",
@@ -440,7 +405,6 @@
 
   function renderFind() {
     setHeader("Find your invite", "Type the name on the invitation.");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -505,7 +469,6 @@
 
   function renderPick() {
     setHeader("Verify your name", "Tap your name to continue.");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -585,7 +548,6 @@
     const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
 
     setHeader("RSVP", `${inviteName}, are you coming?`);
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -674,7 +636,6 @@
         return render();
       }
 
-      // Decline: submit immediately
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -709,7 +670,6 @@
         }
       }
 
-      // Single invite YES
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -717,7 +677,6 @@
         return render();
       }
 
-      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -740,7 +699,6 @@
 
   function renderTranspo() {
     setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -785,7 +743,6 @@
 
   function renderPhone() {
     setHeader("Mobile number", "Please enter your PH mobile number.");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -803,27 +760,12 @@
     helper.textContent = "Format: 09XX XXX XXXX";
     wrap.appendChild(helper);
 
-    function liveValidate() {
-      const s = phoneStatus_(state.phoneDigits);
-      if (s.ok) { input.setCustomValidity(""); return; }
-      if (s.reason === "empty") { input.setCustomValidity(""); return; }
-      input.setCustomValidity("invalid");
-    }
-
     input.oninput = (e) => {
       const digits = digits11_(e.target.value);
       state.phoneDigits = digits;
       e.target.value = formatPH09_(digits);
       state.error = "";
-      liveValidate();
-    };
-
-    input.onblur = () => {
-      const s = phoneStatus_(state.phoneDigits);
-      if (!s.ok && s.reason === "invalid") {
-        state.error = "Phone number invalid. Please use 11 digits starting with 09.";
-        render();
-      }
+      render();
     };
 
     wrap.appendChild(input);
@@ -866,7 +808,6 @@
 
   function renderNotes() {
     setHeader("Notes", "Anything else? (Optional)");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -959,7 +900,7 @@
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible,          // sends "09XX XXX XXXX"
+      phone: phoneCheck.visible,
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -999,7 +940,6 @@
 
   function renderLocked() {
     setHeader("RSVP already received", "For changes, please contact the coordinator.");
-    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -1017,61 +957,36 @@
     startOver.textContent = "Start over";
     startOver.onclick = resetAll;
 
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
-
     btns.appendChild(startOver);
-    btns.appendChild(close);
     wrap.appendChild(btns);
 
     elContent.appendChild(wrap);
   }
 
   function renderThanks() {
-    setHeader("Thank you!", "See you soon.");
-    elCloseWrap.style.display = "none";
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
-
-    btns.appendChild(close);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  function renderDeclined() {
-    setHeader("Thank you!", "We’re so sorry you won’t be able to make it!");
-    elCloseWrap.style.display = "none";
+    setHeader("Thank you!", "RSVP received.");
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
     const msg = document.createElement("div");
     msg.className = "muted";
-    msg.textContent = "Thank you for letting us know.";
+    msg.textContent = "You may close this window.";
     wrap.appendChild(msg);
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
+    elContent.appendChild(wrap);
+  }
 
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
+  function renderDeclined() {
+    setHeader("Thank you!", "We’re so sorry you won’t be able to make it!");
 
-    btns.appendChild(close);
-    wrap.appendChild(btns);
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = "You may close this window.";
+    wrap.appendChild(msg);
 
     elContent.appendChild(wrap);
   }
@@ -1095,24 +1010,7 @@
     render();
   }
 
-  function closeModal() {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
-      }
-    } catch (e) {}
-
-    const overlay = document.getElementById("overlay");
-    if (overlay) overlay.style.display = "none";
-
-    const modal = document.getElementById("modal");
-    if (modal) modal.style.display = "none";
-
-    try { window.close(); } catch (e) {}
-  }
-
-  document.getElementById("overlay").style.display = "block";
-  document.getElementById("modal").style.display = "block";
+  // Always visible
   resetAll();
 </script>
 </body>
