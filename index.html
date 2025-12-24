@@ -31,6 +31,7 @@
       color:var(--text);
     }
 
+    /* Overlay */
     #overlay{
       position:fixed;
       inset:0;
@@ -38,6 +39,7 @@
       z-index: 9998;
     }
 
+    /* Modal */
     #modal{
       position: fixed;
       left: 50%;
@@ -129,6 +131,7 @@
       text-align:center;
     }
 
+    /* Buttons */
     .btns{
       display:flex;
       gap:12px;
@@ -172,6 +175,7 @@
       cursor:not-allowed;
     }
 
+    /* Yes/No pills */
     .pillRow{
       display:flex;
       gap:10px;
@@ -201,6 +205,7 @@
       border-color: var(--pillActiveBorder);
     }
 
+    /* Name pick list */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -230,6 +235,7 @@
       border-color:#c9cada;
     }
 
+    /* Loading dots */
     .loading{
       display:flex;
       align-items:center;
@@ -256,6 +262,7 @@
       40%{transform:scale(1.1); opacity:1}
     }
 
+    /* Close bar (unused here, kept for compatibility) */
     #closeWrap{
       padding:12px 18px 16px;
       border-top:1px solid var(--line);
@@ -321,11 +328,11 @@
     matches: [],
     invite: null,
 
-    attending: null,
+    attending: null,          // "yes" | "no"
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,
+    transportation: null,     // "Yes" | "No"
     phoneDigits: "",
     notes: ""
   };
@@ -335,7 +342,8 @@
   const elContent = document.getElementById("content");
   const elCloseWrap = document.getElementById("closeWrap");
   const elCloseBtn = document.getElementById("closeBtn");
-  elCloseBtn.addEventListener("click", closeModal);
+
+  if (elCloseBtn) elCloseBtn.addEventListener("click", closeModal);
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -371,6 +379,7 @@
     return div;
   }
 
+  // CORS-safe request (no preflight)
   async function api(action, payload) {
     const res = await fetch(CONFIG.webAppUrl, {
       method: "POST",
@@ -403,11 +412,6 @@
     if (d.length <= 4) return p1;
     if (d.length <= 7) return `${p1} ${p2}`;
     return `${p1} ${p2} ${p3}`;
-  }
-
-  function isValidPH09_(digits) {
-    const d = digits11_(digits);
-    return d.length === 11 && d.startsWith("09");
   }
 
   function phoneStatus_(digits) {
@@ -670,6 +674,7 @@
         return render();
       }
 
+      // Decline: submit immediately
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -704,6 +709,7 @@
         }
       }
 
+      // Single invite YES
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -711,6 +717,7 @@
         return render();
       }
 
+      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -952,7 +959,7 @@
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible,
+      phone: phoneCheck.visible,          // sends "09XX XXX XXXX"
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -1088,7 +1095,6 @@
     render();
   }
 
-  // ✅ Readymag re-open support: notify parent, but DO NOT permanently hide elements
   function closeModal() {
     try {
       if (window.parent && window.parent !== window) {
@@ -1096,25 +1102,14 @@
       }
     } catch (e) {}
 
-    // Hide inside the iframe. Parent can re-show or re-create iframe next time.
     const overlay = document.getElementById("overlay");
     if (overlay) overlay.style.display = "none";
 
     const modal = document.getElementById("modal");
     if (modal) modal.style.display = "none";
-  }
 
-  // ✅ Listen for parent "open" messages so the same iframe can be reused
-  window.addEventListener("message", (ev) => {
-    const t = ev?.data?.type;
-    if (t === "RSVP_OPEN") {
-      const overlay = document.getElementById("overlay");
-      const modal = document.getElementById("modal");
-      if (overlay) overlay.style.display = "block";
-      if (modal) modal.style.display = "block";
-      resetAll();
-    }
-  });
+    try { window.close(); } catch (e) {}
+  }
 
   document.getElementById("overlay").style.display = "block";
   document.getElementById("modal").style.display = "block";
