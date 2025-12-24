@@ -16,6 +16,7 @@
       --btn:#141418;
       --btnText:#ffffff;
 
+      /* Pills (Yes/No) */
       --pillBg:#eef1ff;
       --pillBorder:#cfd6ff;
       --pillHover:#e3e8ff;
@@ -31,6 +32,7 @@
       color:var(--text);
     }
 
+    /* Overlay */
     #overlay{
       position:fixed;
       inset:0;
@@ -38,6 +40,7 @@
       z-index: 9998;
     }
 
+    /* Modal centered, responsive, Readymag-friendly */
     #modal{
       position: fixed;
       left: 50%;
@@ -89,6 +92,13 @@
       text-align:center;
     }
 
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      text-align:center;
+    }
+
     input, select, textarea{
       width:100%;
       max-width:360px;
@@ -129,6 +139,7 @@
       text-align:center;
     }
 
+    /* Action buttons (Back / Next / Close / Submit) */
     .btns{
       display:flex;
       gap:12px;
@@ -153,6 +164,7 @@
       min-width: 140px;
     }
 
+    /* Visible hover on dark buttons */
     button.primary:hover{
       background:#2a2a30;
     }
@@ -174,6 +186,7 @@
       cursor:not-allowed;
     }
 
+    /* Yes/No pills (distinct from nav buttons) */
     .pillRow{
       display:flex;
       gap:10px;
@@ -187,7 +200,7 @@
       border: 1.5px solid var(--pillBorder);
       color: var(--text);
       min-width:150px;
-      border-radius:999px;
+      border-radius:999px; /* more pill-like */
       padding:11px 16px;
       font-weight:700;
       transition: background .08s ease, border-color .08s ease;
@@ -203,6 +216,7 @@
       border-color: var(--pillActiveBorder);
     }
 
+    /* Name selection buttons (verification list) */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -232,6 +246,7 @@
       border-color:#c9cada;
     }
 
+    /* Loading */
     .loading{
       display:flex;
       align-items:center;
@@ -258,6 +273,7 @@
       40%{transform:scale(1.1); opacity:1}
     }
 
+    /* Main close bar button (hidden on Thanks / Locked / Declined) */
     #closeWrap{
       padding:12px 18px 16px;
       border-top:1px solid var(--line);
@@ -277,6 +293,7 @@
       border-color:#c9cada;
     }
 
+    /* Mobile: full-width action buttons */
     @media (max-width: 420px){
       button.primary,
       button.secondary{
@@ -323,12 +340,12 @@
     matches: [],
     invite: null,
 
-    attending: null,
+    attending: null,          // "yes" | "no"
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,
-    phoneDigits: "",
+    transportation: null,     // "Yes" | "No"
+    phoneDigits: "",          // digits only
     notes: ""
   };
 
@@ -393,7 +410,7 @@
     state.attendeeNames = arr;
   }
 
-  // RSVP v3 phone helpers
+  // v2 + phone-visible save:
   function digits11_(s) {
     return String(s || "").replace(/[^\d]/g, "").slice(0, 11);
   }
@@ -668,6 +685,7 @@
         return render();
       }
 
+      // Decline: submit immediately, stop flow
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -702,6 +720,7 @@
         }
       }
 
+      // Single invite YES: skip to transpo
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -709,6 +728,7 @@
         return render();
       }
 
+      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -927,7 +947,7 @@
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible,         // RSVP v3: save exactly what guest sees
+      phone: phoneCheck.visible,         // IMPORTANT: send visible "09XX XXX XXXX"
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
