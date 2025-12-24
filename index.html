@@ -410,7 +410,6 @@
     return d.length === 11 && d.startsWith("09");
   }
 
-  // ✅ Returns "" if empty, "invalid" if tried but wrong, or the final visible string if valid
   function phoneStatus_(digits) {
     const d = digits11_(digits);
     if (!d) return { ok: false, reason: "empty", visible: "" };
@@ -789,7 +788,7 @@
     input.inputMode = "numeric";
     input.autocomplete = "tel";
     input.placeholder = "09XX XXX XXXX";
-    input.maxLength = 13; // includes spaces in the formatted display
+    input.maxLength = 13;
     input.value = formatPH09_(state.phoneDigits);
 
     const helper = document.createElement("div");
@@ -799,14 +798,8 @@
 
     function liveValidate() {
       const s = phoneStatus_(state.phoneDigits);
-      if (s.ok) {
-        input.setCustomValidity("");
-        return;
-      }
-      if (s.reason === "empty") {
-        input.setCustomValidity("");
-        return;
-      }
+      if (s.ok) { input.setCustomValidity(""); return; }
+      if (s.reason === "empty") { input.setCustomValidity(""); return; }
       input.setCustomValidity("invalid");
     }
 
@@ -845,13 +838,10 @@
       state.error = "";
 
       const s = phoneStatus_(state.phoneDigits);
-
       if (!s.ok) {
-        if (s.reason === "empty") {
-          state.error = "Phone number is required.";
-        } else {
-          state.error = "Phone number invalid. Please use 11 digits starting with 09.";
-        }
+        state.error = (s.reason === "empty")
+          ? "Phone number is required."
+          : "Phone number invalid. Please use 11 digits starting with 09.";
         return render();
       }
 
@@ -926,7 +916,6 @@
       return render();
     }
 
-    // ✅ Always re-check phone right before submit, and bounce back to phone with a clear error
     const phoneCheck = phoneStatus_(state.phoneDigits);
     if (!phoneCheck.ok) {
       state.error = phoneCheck.reason === "empty"
@@ -963,7 +952,7 @@
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible, // ✅ "09XX XXX XXXX" exactly as shown
+      phone: phoneCheck.visible,
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -982,7 +971,6 @@
           return render();
         }
 
-        // ✅ If server complains about phone, show it on phone screen
         const msg = String(data?.error || "Submit failed.");
         if (msg.toLowerCase().includes("phone")) {
           state.error = msg;
@@ -1100,45 +1088,33 @@
     render();
   }
 
+  // ✅ Readymag re-open support: notify parent, but DO NOT permanently hide elements
   function closeModal() {
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+      }
+    } catch (e) {}
+
+    // Hide inside the iframe. Parent can re-show or re-create iframe next time.
+    const overlay = document.getElementById("overlay");
+    if (overlay) overlay.style.display = "none";
+
+    const modal = document.getElementById("modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  // ✅ Listen for parent "open" messages so the same iframe can be reused
+  window.addEventListener("message", (ev) => {
+    const t = ev?.data?.type;
+    if (t === "RSVP_OPEN") {
+      const overlay = document.getElementById("overlay");
+      const modal = document.getElementById("modal");
+      if (overlay) overlay.style.display = "block";
+      if (modal) modal.style.display = "block";
+      resetAll();
     }
-  } catch (e) {}
-
-  // Hide locally (optional). Re-open will show it again.
-  const overlay = document.getElementById("overlay");
-  const modal = document.getElementById("modal");
-  if (overlay) overlay.style.display = "none";
-  if (modal) modal.style.display = "none";
-}
-
-  function openModal() {
-  const overlay = document.getElementById("overlay");
-  const modal = document.getElementById("modal");
-  if (overlay) overlay.style.display = "block";
-  if (modal) modal.style.display = "block";
-  resetAll();
-}
-
-window.addEventListener("message", (e) => {
-  if (!e || !e.data) return;
-  if (e.data.type === "RSVP_OPEN") openModal();
-});
-
-window.addEventListener("message", (e) => {
-  if (!e || !e.data) return;
-  if (e.data.type === "RSVP_OPEN") openModal();
-});
-
-
-// Listen for a message from Readymag to re-open the modal
-window.addEventListener("message", (e) => {
-  if (!e || !e.data) return;
-  if (e.data.type === "RSVP_OPEN") openModal();
-});
-
+  });
 
   document.getElementById("overlay").style.display = "block";
   document.getElementById("modal").style.display = "block";
