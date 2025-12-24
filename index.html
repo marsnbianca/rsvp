@@ -31,7 +31,6 @@
       color:var(--text);
     }
 
-    /* Overlay */
     #overlay{
       position:fixed;
       inset:0;
@@ -39,7 +38,6 @@
       z-index: 9998;
     }
 
-    /* Modal centered, responsive, Readymag-friendly */
     #modal{
       position: fixed;
       left: 50%;
@@ -64,35 +62,11 @@
       text-align:center;
     }
 
-    #headRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
     #title{
       margin:0;
       font-size:20px;
       font-weight:700;
       letter-spacing:.2px;
-    }
-
-    #closeX{
-      appearance:none;
-      border:0;
-      background:transparent;
-      cursor:pointer;
-      font-size:18px;
-      line-height:1;
-      padding:6px 10px;
-      border-radius:10px;
-      color:var(--muted);
-    }
-
-    #closeX:hover{
-      background:#eceef6;
-      color:var(--text);
     }
 
     #subtitle{
@@ -155,7 +129,6 @@
       text-align:center;
     }
 
-    /* Action buttons (Back / Next / Submit) */
     .btns{
       display:flex;
       gap:12px;
@@ -201,7 +174,6 @@
       cursor:not-allowed;
     }
 
-    /* Yes/No pills */
     .pillRow{
       display:flex;
       gap:10px;
@@ -231,7 +203,6 @@
       border-color: var(--pillActiveBorder);
     }
 
-    /* Name selection buttons */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -261,7 +232,6 @@
       border-color:#c9cada;
     }
 
-    /* Loading */
     .loading{
       display:flex;
       align-items:center;
@@ -288,7 +258,25 @@
       40%{transform:scale(1.1); opacity:1}
     }
 
-    /* Mobile: full-width action buttons */
+    #closeWrap{
+      padding:12px 18px 16px;
+      border-top:1px solid var(--line);
+      display:none;
+      justify-content:center;
+    }
+
+    #closeBtn{
+      background:#ffffff;
+      border:1.5px solid var(--line);
+      color:var(--text);
+      min-width:180px;
+    }
+
+    #closeBtn:hover{
+      background:#f0f1f6;
+      border-color:#c9cada;
+    }
+
     @media (max-width: 420px){
       button.primary,
       button.secondary{
@@ -309,14 +297,15 @@
 
   <div id="modal" role="dialog" aria-modal="true">
     <div id="header">
-      <div id="headRow">
-        <h1 id="title">RSVP</h1>
-        <button id="closeX" type="button" aria-label="Close">✕</button>
-      </div>
+      <h1 id="title">RSVP</h1>
       <p id="subtitle"></p>
     </div>
 
     <div id="content"></div>
+
+    <div id="closeWrap">
+      <button id="closeBtn">Close</button>
+    </div>
   </div>
 
 <script>
@@ -334,11 +323,11 @@
     matches: [],
     invite: null,
 
-    attending: null,          // "yes" | "no"
+    attending: null,
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,     // "Yes" | "No"
+    transportation: null,
     phoneDigits: "",
     notes: ""
   };
@@ -346,17 +335,9 @@
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
   const elContent = document.getElementById("content");
-  const elCloseX = document.getElementById("closeX");
-
-  // Close inside tool:
-  // We cannot hide the iframe from here (Readymag controls visibility),
-  // so we reset to the first screen and optionally notify parent.
-  if (elCloseX) elCloseX.addEventListener("click", () => {
-    resetAll();
-
-    // Optional: parent may ignore this (safe no-op)
-    try { window.parent.postMessage({ type: "RSVP_CLOSE" }, "*"); } catch(e) {}
-  });
+  const elCloseWrap = document.getElementById("closeWrap");
+  const elCloseBtn = document.getElementById("closeBtn");
+  elCloseBtn.addEventListener("click", closeModal);
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -412,6 +393,7 @@
     state.attendeeNames = arr;
   }
 
+  // RSVP v3 phone helpers
   function digits11_(s) {
     return String(s || "").replace(/[^\d]/g, "").slice(0, 11);
   }
@@ -452,6 +434,7 @@
 
   function renderFind() {
     setHeader("Find your invite", "Type the name on the invitation.");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -516,6 +499,7 @@
 
   function renderPick() {
     setHeader("Verify your name", "Tap your name to continue.");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -595,6 +579,7 @@
     const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
 
     setHeader("RSVP", `${inviteName}, are you coming?`);
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -683,7 +668,6 @@
         return render();
       }
 
-      // Decline: submit immediately, stop flow
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -718,7 +702,6 @@
         }
       }
 
-      // Single invite YES: skip to transpo
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -726,7 +709,6 @@
         return render();
       }
 
-      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -749,6 +731,7 @@
 
   function renderTranspo() {
     setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -793,6 +776,7 @@
 
   function renderPhone() {
     setHeader("Mobile number", "Please enter your PH mobile number.");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -802,20 +786,12 @@
     input.inputMode = "numeric";
     input.autocomplete = "tel";
     input.placeholder = "09XX XXX XXXX";
-    input.maxLength = 13;
     input.value = formatPH09_(state.phoneDigits);
-
-    const helper = document.createElement("div");
-    helper.className = "muted";
-    helper.textContent = "Format: 09XX XXX XXXX";
-    wrap.appendChild(helper);
 
     input.oninput = (e) => {
       const digits = digits11_(e.target.value);
       state.phoneDigits = digits;
       e.target.value = formatPH09_(digits);
-      state.error = "";
-      render();
     };
 
     wrap.appendChild(input);
@@ -840,7 +816,7 @@
       if (!s.ok) {
         state.error = (s.reason === "empty")
           ? "Phone number is required."
-          : "Phone number invalid. Please use 11 digits starting with 09.";
+          : "Phone number invalid. Please enter 11 digits starting with 09.";
         return render();
       }
 
@@ -858,6 +834,7 @@
 
   function renderNotes() {
     setHeader("Notes", "Anything else? (Optional)");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -918,7 +895,7 @@
     if (!phoneCheck.ok) {
       state.error = phoneCheck.reason === "empty"
         ? "Phone number is required."
-        : "Phone number invalid. Please use 11 digits starting with 09.";
+        : "Phone number invalid. Please enter 11 digits starting with 09.";
       state.step = "phone";
       return render();
     }
@@ -950,7 +927,7 @@
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible, // save exactly what guest sees (09XX XXX XXXX)
+      phone: phoneCheck.visible,         // RSVP v3: save exactly what guest sees
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -968,15 +945,7 @@
           state.step = "locked";
           return render();
         }
-
-        const msg = String(data?.error || "Submit failed.");
-        if (msg.toLowerCase().includes("phone")) {
-          state.error = msg;
-          state.step = "phone";
-          return render();
-        }
-
-        throw new Error(msg);
+        throw new Error(data?.error || "Submit failed.");
       }
 
       state.step = "thanks";
@@ -990,6 +959,7 @@
 
   function renderLocked() {
     setHeader("RSVP already received", "For changes, please contact the coordinator.");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
@@ -999,33 +969,69 @@
     msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
     wrap.appendChild(msg);
 
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const startOver = document.createElement("button");
+    startOver.className = "secondary";
+    startOver.textContent = "Start over";
+    startOver.onclick = resetAll;
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(startOver);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
     elContent.appendChild(wrap);
   }
 
   function renderThanks() {
-    setHeader("Thank you!", "RSVP received.");
+    setHeader("Thank you!", "See you soon.");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.textContent = "You may close this window.";
-    wrap.appendChild(msg);
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(close);
+    wrap.appendChild(btns);
 
     elContent.appendChild(wrap);
   }
 
   function renderDeclined() {
     setHeader("Thank you!", "We’re so sorry you won’t be able to make it!");
+    elCloseWrap.style.display = "none";
 
     const wrap = document.createElement("div");
     wrap.className = "row";
 
     const msg = document.createElement("div");
     msg.className = "muted";
-    msg.textContent = "You may close this window.";
+    msg.textContent = "Thank you for letting us know.";
     wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(close);
+    wrap.appendChild(btns);
 
     elContent.appendChild(wrap);
   }
@@ -1034,7 +1040,6 @@
     state.step = "find";
     state.loading = false;
     state.error = "";
-    state.contactLine = "";
     state.nameQuery = "";
     state.matches = [];
     state.invite = null;
@@ -1050,7 +1055,24 @@
     render();
   }
 
-  // Initial load
+  function closeModal() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+      }
+    } catch (e) {}
+
+    const overlay = document.getElementById("overlay");
+    if (overlay) overlay.style.display = "none";
+
+    const modal = document.getElementById("modal");
+    if (modal) modal.style.display = "none";
+
+    try { window.close(); } catch (e) {}
+  }
+
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("modal").style.display = "block";
   resetAll();
 </script>
 </body>
