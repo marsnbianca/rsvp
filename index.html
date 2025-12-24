@@ -14,10 +14,12 @@
       --border: #e5e7eb;
       --shadow: 0 24px 80px rgba(0,0,0,.18);
       --radius: 18px;
+
       --btn: #111827;
       --btnText: #ffffff;
       --btnAlt: #f3f4f6;
       --btnAltText: #111827;
+
       --danger: #b91c1c;
       --ok: #166534;
     }
@@ -66,7 +68,7 @@
       font-size: 18px;
       line-height: 1.2;
       letter-spacing: .2px;
-      padding-right: 44px;
+      padding-right: 44px; /* room for X */
     }
 
     .subtitle{
@@ -74,7 +76,7 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
-      padding-right: 44px;
+      padding-right: 44px; /* room for X */
     }
 
     .xBtn{
@@ -259,10 +261,13 @@
           <h1 class="title" id="headerTitle">RSVP</h1>
           <p class="subtitle" id="headerSubtitle">Find your invite to get started.</p>
         </div>
+
+        <!-- Sticky X (hidden on end screens) -->
         <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
       </header>
 
       <main>
+        <!-- FIND -->
         <section id="stepFind" class="col">
           <div>
             <label for="nameInput">Full name</label>
@@ -279,6 +284,7 @@
           </div>
         </section>
 
+        <!-- PICK -->
         <section id="stepPick" class="col hidden">
           <div class="chip">Multiple matches found</div>
           <div id="pickList" class="col"></div>
@@ -292,6 +298,7 @@
           </div>
         </section>
 
+        <!-- COMING -->
         <section id="stepComing" class="col hidden">
           <div class="summaryBox">
             <div class="summaryLine">
@@ -309,7 +316,9 @@
           <div class="col">
             <div>
               <div class="row" style="justify-content: space-between;">
-                <div><label style="margin:0;">Will you be attending?</label></div>
+                <div>
+                  <label style="margin:0;">Will you be attending?</label>
+                </div>
                 <div class="row">
                   <button class="btn pill" id="btnYes" type="button">Yes</button>
                   <button class="btn pill" id="btnNo" type="button">No</button>
@@ -339,6 +348,7 @@
           </div>
         </section>
 
+        <!-- TRANSPO -->
         <section id="stepTranspo" class="col hidden">
           <div>
             <label>Transportation</label>
@@ -361,6 +371,7 @@
           </div>
         </section>
 
+        <!-- PHONE -->
         <section id="stepPhone" class="col hidden">
           <div>
             <label for="phoneInput">Phone number (Philippines)</label>
@@ -379,6 +390,7 @@
           </div>
         </section>
 
+        <!-- NOTES -->
         <section id="stepNotes" class="col hidden">
           <div>
             <label for="notesInput">Notes (optional)</label>
@@ -397,13 +409,14 @@
           <div id="submitErr" class="err hidden"></div>
         </section>
 
-        <!-- END SCREENS (no X) -->
+        <!-- THANKS (end screen: NO X, close button bottom) -->
         <section id="stepThanks" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">Thanks, you’re all set.</div>
             <div class="help" id="thanksLine" style="margin-top:8px;">RSVP received.</div>
             <div class="contactLine" id="contactLine"></div>
           </div>
+
           <div class="footer">
             <div class="left"></div>
             <div class="right">
@@ -412,12 +425,14 @@
           </div>
         </section>
 
+        <!-- DECLINED (end screen: NO X, close button bottom) -->
         <section id="stepDeclined" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">Got it. Thank you for letting us know.</div>
             <div class="help" style="margin-top:8px;">Your response has been recorded.</div>
             <div class="contactLine" id="contactLine2"></div>
           </div>
+
           <div class="footer">
             <div class="left"></div>
             <div class="right">
@@ -426,6 +441,7 @@
           </div>
         </section>
 
+        <!-- LOCKED (end screen: NO X, close button bottom) -->
         <section id="stepLocked" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">RSVP already received</div>
@@ -434,6 +450,7 @@
             </div>
             <div class="contactLine" id="contactLine3"></div>
           </div>
+
           <div class="footer">
             <div class="left"></div>
             <div class="right">
@@ -462,12 +479,15 @@
     function clearErr(el){ setText(el, ""); hide(el); }
 
     function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
+
+    // Title Case per word, keeps hyphens + apostrophes
     function titleCaseName_(s){
       s = normalizeSpaces_(s).toLowerCase();
-      var out = "", capNext = true;
+      var out = "";
+      var capNext = true;
       for (var i = 0; i < s.length; i++){
         var ch = s[i];
-        if (capNext && /[a-z]/.test(ch)){ out += ch.toUpperCase(); capNext = false; }
+        if (capNext && /[a-z]/.test(ch)) { out += ch.toUpperCase(); capNext = false; }
         else out += ch;
         if (ch === " " || ch === "-" || ch === "'") capNext = true;
       }
@@ -475,8 +495,15 @@
     }
 
     function hideAllSteps(){
-      ["stepFind","stepPick","stepComing","stepTranspo","stepPhone","stepNotes","stepThanks","stepDeclined","stepLocked"]
-        .forEach(function(id){ hide($(id)); });
+      hide($("stepFind"));
+      hide($("stepPick"));
+      hide($("stepComing"));
+      hide($("stepTranspo"));
+      hide($("stepPhone"));
+      hide($("stepNotes"));
+      hide($("stepThanks"));
+      hide($("stepDeclined"));
+      hide($("stepLocked"));
     }
 
     function setXVisible_(visible){
@@ -496,7 +523,7 @@
       window.scrollTo(0,0);
     }
 
-    // Fixes many "Network error" issues with Apps Script by avoiding CORS preflight
+    // Avoid CORS preflight for Apps Script by using text/plain
     function postJson(action, payload){
       return fetch(CONFIG.webAppUrl, {
         method: "POST",
@@ -511,10 +538,12 @@
     }
 
     function closeRSVP(){
+      // This is what your Readymag overlay listens for
       if (window.parent && window.parent !== window) {
         window.parent.postMessage("RSVP:CLOSE", "*");
         return;
       }
+      // Fallback if opened in a popup
       if (window.opener && !window.opener.closed) {
         window.close();
         return;
@@ -522,35 +551,50 @@
       window.location.href = "/";
     }
 
+    /* Phone v3 (store visible 09XX XXX XXXX) */
     var phoneDigits = "";
+
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
+
     function formatPHVisible(d){
       var x = (d || "");
       if (x.indexOf("63") === 0 && x.length >= 12) x = "0" + x.slice(2);
       x = x.slice(0, 11);
-      var a = x.slice(0, 4), b = x.slice(4, 7), c = x.slice(7, 11);
+      var a = x.slice(0, 4);
+      var b = x.slice(4, 7);
+      var c = x.slice(7, 11);
       var out = a;
       if (b.length) out += " " + b;
       if (c.length) out += " " + c;
       return out.trim();
     }
-    function isValidPHVisible(v){ return /^09\d{2}\s\d{3}\s\d{4}$/.test((v || "").trim()); }
+
+    function isValidPHVisible(visible){
+      return /^09\d{2}\s\d{3}\s\d{4}$/.test((visible || "").trim());
+    }
+
     function setPhoneFromInput(){
       phoneDigits = digitsOnly($("phoneInput").value);
       var visible = formatPHVisible(phoneDigits);
       $("phoneInput").value = visible;
       return visible;
     }
+
     function validatePhone(showMessage){
       var visible = setPhoneFromInput();
-      if (!visible){ if (showMessage) showErr($("phoneErr"), "Phone number is required."); return { ok:false, kind:"required", visible:visible }; }
-      if (!isValidPHVisible(visible)){ if (showMessage) showErr($("phoneErr"), "Phone number is invalid. Please use 09XX XXX XXXX."); return { ok:false, kind:"invalid", visible:visible }; }
+      if (!visible) {
+        if (showMessage) showErr($("phoneErr"), "Phone number is required.");
+        return { ok:false, kind:"required", visible:visible };
+      }
+      if (!isValidPHVisible(visible)) {
+        if (showMessage) showErr($("phoneErr"), "Phone number is invalid. Please use 09XX XXX XXXX.");
+        return { ok:false, kind:"invalid", visible:visible };
+      }
       clearErr($("phoneErr"));
       return { ok:true, kind:"ok", visible:visible };
     }
 
     var state = {
-      queryName: "",
       matches: [],
       selected: null,
       inviteId: null,
@@ -642,12 +686,17 @@
     }
 
     function resetState(){
-      state = { queryName:"", matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
+      state = { matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
       phoneDigits = "";
       $("nameInput").value = "";
       $("notesInput").value = "";
       $("phoneInput").value = "";
-      ["findErr","pickErr","comingErr","transpoErr","phoneErr","submitErr"].forEach(function(id){ clearErr($(id)); });
+      clearErr($("findErr"));
+      clearErr($("pickErr"));
+      clearErr($("comingErr"));
+      clearErr($("transpoErr"));
+      clearErr($("phoneErr"));
+      clearErr($("submitErr"));
       setText($("contactLine"), CONFIG.contactLineText);
       setText($("contactLine2"), CONFIG.contactLineText);
       setText($("contactLine3"), CONFIG.contactLineText);
@@ -661,20 +710,30 @@
     function startFind(){
       clearErr($("findErr"));
       var q = normalizeSpaces_($("nameInput").value);
-      state.queryName = q;
       if (!q){ showErr($("findErr"), "Please enter your name."); return; }
 
       $("findBtn").disabled = true;
       postJson("find", { name: q })
         .then(function(res){
           $("findBtn").disabled = false;
-          if (!res || res.ok === false){ showErr($("findErr"), (res && res.error) ? res.error : "Something went wrong. Please try again."); return; }
+
+          if (!res || res.ok === false){
+            showErr($("findErr"), (res && res.error) ? res.error : "Something went wrong. Please try again.");
+            return;
+          }
 
           var matches = res.matches || [];
           state.matches = matches;
 
-          if (matches.length === 0){ showErr($("findErr"), "No match found. Please check spelling or try a different name."); return; }
-          if (matches.length === 1){ selectMatch(matches[0]); return; }
+          if (matches.length === 0){
+            showErr($("findErr"), "No match found. Please check spelling or try a different name.");
+            return;
+          }
+
+          if (matches.length === 1){
+            selectMatch(matches[0]);
+            return;
+          }
 
           renderPickList(matches);
           clearErr($("pickErr"));
@@ -689,16 +748,24 @@
     function selectMatch(match){
       var inviteId = match.invite_id || match.id || match.key;
       if (!inviteId){ showErr($("pickErr"), "This invite is missing an ID. Please try again."); return; }
+
       state.inviteId = inviteId;
 
       postJson("get", { invite_id: inviteId })
         .then(function(res){
-          if (!res || res.ok === false){ showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load invite. Please try again."); return; }
-          if (res.locked){ go("stepLocked", "RSVP", "RSVP already received."); return; }
+          if (!res || res.ok === false){
+            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load invite. Please try again.");
+            return;
+          }
+
+          if (res.locked){
+            go("stepLocked", "RSVP", "RSVP already received.");
+            return;
+          }
 
           state.selected = res.invite || match;
-          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
 
+          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
           buildCountSelect(maxSeats);
           buildAttendeeInputs(1);
           updateSummary();
@@ -709,12 +776,18 @@
 
           go("stepComing", "RSVP", "Will you be attending?");
         })
-        .catch(function(){ showErr($("pickErr"), "Network error. Please try again."); });
+        .catch(function(){
+          showErr($("pickErr"), "Network error. Please try again.");
+        });
     }
 
     function comingNext(){
       clearErr($("comingErr"));
-      if (!state.status){ showErr($("comingErr"), "Please select Yes or No."); return; }
+
+      if (!state.status){
+        showErr($("comingErr"), "Please select Yes or No.");
+        return;
+      }
 
       if (state.status === "Declined"){
         submitRSVP();
@@ -729,7 +802,10 @@
         state.attendees[i] = v;
         if (!v) missing.push(i+1);
       }
-      if (missing.length){ showErr($("comingErr"), "Please enter attendee name" + (missing.length > 1 ? "s" : "") + " for your party."); return; }
+      if (missing.length){
+        showErr($("comingErr"), "Please enter attendee name" + (missing.length > 1 ? "s" : "") + " for your party.");
+        return;
+      }
 
       clearErr($("transpoErr"));
       setTranspo(state.transportation || "");
@@ -738,7 +814,10 @@
 
     function transpoNext(){
       clearErr($("transpoErr"));
-      if (!state.transportation){ showErr($("transpoErr"), "Please select a transportation option."); return; }
+      if (!state.transportation){
+        showErr($("transpoErr"), "Please select a transportation option.");
+        return;
+      }
       clearErr($("phoneErr"));
       go("stepPhone", "RSVP", "Contact number");
     }
@@ -753,8 +832,9 @@
     function submitRSVP(){
       clearErr($("submitErr"));
 
-      if (state.status === "Attending") {
+      if (state.status === "Attending"){
         state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); });
+
         var v = validatePhone(true);
         if (!v.ok){
           showErr($("submitErr"), v.kind === "required"
@@ -788,8 +868,15 @@
           $("submitBtn").disabled = false;
           $("comingNextBtn").disabled = false;
 
-          if (!res || res.ok === false){ showErr($("submitErr"), (res && res.error) ? res.error : "Unable to submit. Please try again."); return; }
-          if (res.locked){ go("stepLocked", "RSVP", "RSVP already received."); return; }
+          if (!res || res.ok === false){
+            showErr($("submitErr"), (res && res.error) ? res.error : "Unable to submit. Please try again.");
+            return;
+          }
+
+          if (res.locked){
+            go("stepLocked", "RSVP", "RSVP already received.");
+            return;
+          }
 
           if (state.status === "Declined"){
             go("stepDeclined", "RSVP", "Response recorded.");
@@ -806,7 +893,7 @@
         });
     }
 
-    // Bind
+    // Bind events
     $("xBtn").addEventListener("click", closeRSVP);
     $("thanksCloseBtn").addEventListener("click", closeRSVP);
     $("declineCloseBtn").addEventListener("click", closeRSVP);
@@ -815,7 +902,9 @@
     $("findBtn").addEventListener("click", startFind);
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
-    $("pickBackBtn").addEventListener("click", function(){ go("stepFind", "RSVP", "Find your invite to get started."); });
+    $("pickBackBtn").addEventListener("click", function(){
+      go("stepFind", "RSVP", "Find your invite to get started.");
+    });
 
     $("btnYes").addEventListener("click", function(){
       state.status = "Attending";
@@ -839,11 +928,17 @@
       buildAttendeeInputs(n);
     });
 
-    $("comingBackBtn").addEventListener("click", function(){ go("stepFind", "RSVP", "Find your invite to get started."); });
+    $("comingBackBtn").addEventListener("click", function(){
+      go("stepFind", "RSVP", "Find your invite to get started.");
+    });
+
     $("comingNextBtn").addEventListener("click", comingNext);
 
     $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]").forEach(function(btn){
-      btn.addEventListener("click", function(){ setTranspo(btn.getAttribute("data-transpo")); clearErr($("transpoErr")); });
+      btn.addEventListener("click", function(){
+        setTranspo(btn.getAttribute("data-transpo"));
+        clearErr($("transpoErr"));
+      });
     });
 
     $("transpoBackBtn").addEventListener("click", function(){ go("stepComing", "RSVP", "Will you be attending?"); });
@@ -851,9 +946,12 @@
 
     $("phoneBackBtn").addEventListener("click", function(){ go("stepTranspo", "RSVP", "Transportation details"); });
 
-    $("phoneInput").addEventListener("input", function(){ setPhoneFromInput(); hide($("phoneErr")); });
-    $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
+    $("phoneInput").addEventListener("input", function(){
+      setPhoneFromInput();
+      hide($("phoneErr"));
+    });
 
+    $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
     $("phoneNextBtn").addEventListener("click", phoneNext);
 
     $("notesBackBtn").addEventListener("click", function(){ go("stepPhone", "RSVP", "Contact number"); });
