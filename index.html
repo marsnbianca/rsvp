@@ -21,13 +21,66 @@
       --pillHover:#e3e8ff;
       --pillActive:#d7dfff;
       --pillActiveBorder:#b9c6ff;
-    } /* ✅ FIX: close :root */
+    }
+
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:transparent;
+      color:var(--text);
+    }
+
+    /* Overlay */
+    #overlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.60);
+      z-index: 9998;
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity .15s ease;
+    }
+
+    /* Modal centered, responsive, Readymag-friendly */
+    #modal{
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      width:min(420px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      text-align:center;
+
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+
+    #header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      text-align:center;
+    }
 
     #headRow{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:12px;
+    }
+
+    #title{
+      margin:0;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.2px;
     }
 
     #closeX{
@@ -45,52 +98,6 @@
     #closeX:hover{
       background:#eceef6;
       color:var(--text);
-    }
-
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background:transparent;
-      color:var(--text);
-    }
-
-    #overlay{
-      position:fixed;
-      inset:0;
-      background: rgba(0,0,0,.60);
-      z-index: 9998;
-    }
-
-    #modal{
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-
-      z-index: 9999;
-      width:min(420px, calc(100vw - 32px));
-      max-height: calc(100vh - 32px);
-      overflow: auto;
-
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.35);
-      text-align:center;
-    }
-
-    #header{
-      padding:18px 18px 10px;
-      border-bottom:1px solid var(--line);
-      text-align:center;
-    }
-
-    #title{
-      margin:0;
-      font-size:20px;
-      font-weight:700;
-      letter-spacing:.2px;
     }
 
     #subtitle{
@@ -153,6 +160,7 @@
       text-align:center;
     }
 
+    /* Action buttons (Back / Next / Submit) */
     .btns{
       display:flex;
       gap:12px;
@@ -177,7 +185,9 @@
       min-width: 140px;
     }
 
-    button.primary:hover{ background:#2a2a30; }
+    button.primary:hover{
+      background:#2a2a30;
+    }
 
     button.secondary{
       background:#ffffff;
@@ -196,6 +206,7 @@
       cursor:not-allowed;
     }
 
+    /* Yes/No pills */
     .pillRow{
       display:flex;
       gap:10px;
@@ -225,6 +236,7 @@
       border-color: var(--pillActiveBorder);
     }
 
+    /* Name selection buttons */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -254,6 +266,7 @@
       border-color:#c9cada;
     }
 
+    /* Loading */
     .loading{
       display:flex;
       align-items:center;
@@ -280,6 +293,7 @@
       40%{transform:scale(1.1); opacity:1}
     }
 
+    /* Mobile: full-width action buttons */
     @media (max-width: 420px){
       button.primary,
       button.secondary{
@@ -325,11 +339,11 @@
     matches: [],
     invite: null,
 
-    attending: null,
+    attending: null,          // "yes" | "no"
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,
+    transportation: null,     // "Yes" | "No"
     phoneDigits: "",
     notes: ""
   };
@@ -337,7 +351,47 @@
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
   const elContent = document.getElementById("content");
+  const elOverlay = document.getElementById("overlay");
+  const elModal = document.getElementById("modal");
   const elCloseX = document.getElementById("closeX");
+
+  // -----------------------
+  // Readymag-friendly close
+  // -----------------------
+  // Close button hides UI INSIDE iframe and prevents click blocking.
+  function hideUI_() {
+    // Hide + stop intercepting clicks
+    elOverlay.style.opacity = "0";
+    elModal.style.opacity = "0";
+    elOverlay.style.pointerEvents = "none";
+    elModal.style.pointerEvents = "none";
+
+    // Tiny move to avoid sitting on top of the page
+    elModal.style.transform = "translate(-50%, calc(-50% + 40px))";
+
+    // Reset flow so next open starts at Find screen
+    resetAll();
+  }
+
+  function showUI_() {
+    elOverlay.style.opacity = "1";
+    elModal.style.opacity = "1";
+    elOverlay.style.pointerEvents = "auto";
+    elModal.style.pointerEvents = "auto";
+    elModal.style.transform = "translate(-50%, -50%)";
+  }
+
+  if (elCloseX) elCloseX.addEventListener("click", hideUI_);
+
+  // When the user interacts inside the iframe again (after reopening in Readymag),
+  // re-show the UI if it was previously hidden, and start from screen 1.
+  window.addEventListener("pointerdown", () => {
+    const hidden = (elModal.style.pointerEvents === "none" || elModal.style.opacity === "0");
+    if (hidden) {
+      showUI_();
+      resetAll();
+    }
+  }, { passive: true });
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -373,6 +427,7 @@
     return div;
   }
 
+  // CORS-safe request (no preflight)
   async function api(action, payload) {
     const res = await fetch(CONFIG.webAppUrl, {
       method: "POST",
@@ -588,7 +643,7 @@
 
       if (maxSeats === 1) {
         state.attendingCount = 1;
-        state.attendeeNames = [inviteName];
+        state.attendeeNames = [inviteName]; // convenience
       } else {
         state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
         syncAttendeeNames_(maxSeats);
@@ -664,6 +719,7 @@
         return render();
       }
 
+      // Decline: submit immediately
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -698,6 +754,7 @@
         }
       }
 
+      // Single invite YES: skip to transpo
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -705,6 +762,7 @@
         return render();
       }
 
+      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -923,6 +981,7 @@
       }
     }
 
+    // IMPORTANT: send exactly what guest sees (09XX XXX XXXX)
     const payload = {
       invite_id: state.invite.invite_id,
       attending: state.attending,
@@ -1028,37 +1087,8 @@
     render();
   }
 
-  // Close inside the tool should just reset to first screen
-  if (elCloseX) {
-    elCloseX.addEventListener("click", () => {
-      resetAll();
-    });
-  }
-
-  // ✅ Reopen reset for Readymag opacity-only embeds:
-  // If the iframe was idle and the user clicks/taps again, restart at Find screen.
-  let lastInteractAt = Date.now();
-
-  function markInteract_() {
-    lastInteractAt = Date.now();
-  }
-
-  function maybeResetOnReopen_() {
-    const now = Date.now();
-    const idleMs = now - lastInteractAt;
-
-    if (idleMs > 2000 && state.step !== "find") {
-      resetAll();
-    }
-
-    lastInteractAt = now;
-  }
-
-  window.addEventListener("pointerdown", maybeResetOnReopen_, { passive: true });
-  window.addEventListener("keydown", markInteract_, { passive: true });
-  window.addEventListener("focus", markInteract_);
-
-  // Initial load
+  // Initial load: start visible and ready
+  showUI_();
   resetAll();
 </script>
 </body>
