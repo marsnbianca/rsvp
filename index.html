@@ -123,18 +123,25 @@
       font-weight:650;
       cursor:pointer;
       font-size:14px;
-    }
     button.primary{
-      background:var(--btn);
-      color:var(--btnText);
-      min-width:140px;
-    }
-    button.secondary{
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--text);
-  min-width:140px;
+  background: var(--btn);
+  color: var(--btnText);
+  border: none;
+  min-width: 140px;
 }
+
+button.secondary{
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  color: var(--text);
+  min-width: 140px;
+}
+
+button.secondary:hover{
+  background: #f0f1f6;
+  border-color: #c9cada;
+}
+
 
     button:disabled{opacity:.6; cursor:not-allowed;}
 
