@@ -1107,7 +1107,7 @@
     }
   } catch (e) {}
 
-  // Hide locally too
+  // Hide locally (optional). Re-open will show it again.
   const overlay = document.getElementById("overlay");
   const modal = document.getElementById("modal");
   if (overlay) overlay.style.display = "none";
@@ -1121,6 +1121,11 @@
   if (modal) modal.style.display = "block";
   resetAll();
 }
+
+window.addEventListener("message", (e) => {
+  if (!e || !e.data) return;
+  if (e.data.type === "RSVP_OPEN") openModal();
+});
 
 window.addEventListener("message", (e) => {
   if (!e || !e.data) return;
