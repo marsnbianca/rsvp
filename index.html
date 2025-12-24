@@ -949,17 +949,6 @@
     msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
     wrap.appendChild(msg);
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const startOver = document.createElement("button");
-    startOver.className = "secondary";
-    startOver.textContent = "Start over";
-    startOver.onclick = resetAll;
-
-    btns.appendChild(startOver);
-    wrap.appendChild(btns);
-
     elContent.appendChild(wrap);
   }
 
@@ -995,6 +984,7 @@
     state.step = "find";
     state.loading = false;
     state.error = "";
+    state.contactLine = "";
     state.nameQuery = "";
     state.matches = [];
     state.invite = null;
@@ -1010,7 +1000,17 @@
     render();
   }
 
-  // Always visible
+  // Reopen detection for Readymag:
+  // When Readymag hides the embed, the iframe typically loses focus (blur).
+  // When it shows it again, the iframe regains focus (focus) — then we reset to the first screen.
+  let wasBlurred = false;
+  window.addEventListener("blur", () => { wasBlurred = true; });
+  window.addEventListener("focus", () => {
+    if (wasBlurred) resetAll();
+    wasBlurred = false;
+  });
+
+  // Initial load
   resetAll();
 </script>
 </body>
