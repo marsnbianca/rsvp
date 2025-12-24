@@ -1122,6 +1122,12 @@
   resetAll();
 }
 
+window.addEventListener("message", (e) => {
+  if (!e || !e.data) return;
+  if (e.data.type === "RSVP_OPEN") openModal();
+});
+
+
 // Listen for a message from Readymag to re-open the modal
 window.addEventListener("message", (e) => {
   if (!e || !e.data) return;
