@@ -22,6 +22,31 @@
       --pillActive:#d7dfff;
       --pillActiveBorder:#b9c6ff;
     }
+    
+    #headRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+#closeX{
+  appearance:none;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+  padding:6px 10px;
+  border-radius:10px;
+  color:var(--muted);
+}
+
+#closeX:hover{
+  background:#eceef6;
+  color:var(--text);
+}
+
 
     html,body{height:100%}
     body{
@@ -276,9 +301,12 @@
 
   <div id="modal" role="dialog" aria-modal="true">
     <div id="header">
-      <h1 id="title">RSVP</h1>
-      <p id="subtitle"></p>
-    </div>
+  <div id="headRow">
+    <h1 id="title">RSVP</h1>
+    <button id="closeX" type="button" aria-label="Close">✕</button>
+  </div>
+  <p id="subtitle"></p>
+</div>
 
     <div id="content"></div>
   </div>
@@ -310,6 +338,31 @@
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
   const elContent = document.getElementById("content");
+  const elOverlay = document.getElementById("overlay");
+const elModal = document.getElementById("modal");
+const elCloseX = document.getElementById("closeX");
+
+function hideUI() {
+  // Hide visually and prevent clicks
+  elOverlay.style.opacity = "0";
+  elModal.style.opacity = "0";
+  elOverlay.style.pointerEvents = "none";
+  elModal.style.pointerEvents = "none";
+
+  // Reset state so next fresh load starts clean
+  resetAll();
+}
+
+// Start visible
+function showUI() {
+  elOverlay.style.opacity = "1";
+  elModal.style.opacity = "1";
+  elOverlay.style.pointerEvents = "auto";
+  elModal.style.pointerEvents = "auto";
+}
+
+if (elCloseX) elCloseX.addEventListener("click", hideUI);
+
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -1011,7 +1064,9 @@
   });
 
   // Initial load
-  resetAll();
+  showUI();
+resetAll();
+
 </script>
 </body>
 </html>
