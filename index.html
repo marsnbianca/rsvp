@@ -37,9 +37,6 @@
       inset:0;
       background: rgba(0,0,0,.60);
       z-index: 9998;
-      opacity: 1;
-      pointer-events: auto;
-      transition: opacity .15s ease;
     }
 
     /* Modal centered, responsive, Readymag-friendly */
@@ -48,19 +45,17 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
+
       z-index: 9999;
       width:min(420px, calc(100vw - 32px));
       max-height: calc(100vh - 32px);
       overflow: auto;
+
       background:var(--card);
       border:1px solid var(--line);
       border-radius:16px;
       box-shadow: 0 8px 30px rgba(0,0,0,.35);
       text-align:center;
-
-      opacity: 1;
-      pointer-events: auto;
-      transition: opacity .15s ease, transform .15s ease;
     }
 
     #header{
@@ -351,47 +346,17 @@
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
   const elContent = document.getElementById("content");
-  const elOverlay = document.getElementById("overlay");
-  const elModal = document.getElementById("modal");
   const elCloseX = document.getElementById("closeX");
 
-  // -----------------------
-  // Readymag-friendly close
-  // -----------------------
-  // Close button hides UI INSIDE iframe and prevents click blocking.
-  function hideUI_() {
-    // Hide + stop intercepting clicks
-    elOverlay.style.opacity = "0";
-    elModal.style.opacity = "0";
-    elOverlay.style.pointerEvents = "none";
-    elModal.style.pointerEvents = "none";
-
-    // Tiny move to avoid sitting on top of the page
-    elModal.style.transform = "translate(-50%, calc(-50% + 40px))";
-
-    // Reset flow so next open starts at Find screen
+  // Close inside tool:
+  // We cannot hide the iframe from here (Readymag controls visibility),
+  // so we reset to the first screen and optionally notify parent.
+  if (elCloseX) elCloseX.addEventListener("click", () => {
     resetAll();
-  }
 
-  function showUI_() {
-    elOverlay.style.opacity = "1";
-    elModal.style.opacity = "1";
-    elOverlay.style.pointerEvents = "auto";
-    elModal.style.pointerEvents = "auto";
-    elModal.style.transform = "translate(-50%, -50%)";
-  }
-
-  if (elCloseX) elCloseX.addEventListener("click", hideUI_);
-
-  // When the user interacts inside the iframe again (after reopening in Readymag),
-  // re-show the UI if it was previously hidden, and start from screen 1.
-  window.addEventListener("pointerdown", () => {
-    const hidden = (elModal.style.pointerEvents === "none" || elModal.style.opacity === "0");
-    if (hidden) {
-      showUI_();
-      resetAll();
-    }
-  }, { passive: true });
+    // Optional: parent may ignore this (safe no-op)
+    try { window.parent.postMessage({ type: "RSVP_CLOSE" }, "*"); } catch(e) {}
+  });
 
   function setHeader(title, subtitle) {
     elTitle.textContent = title;
@@ -427,7 +392,6 @@
     return div;
   }
 
-  // CORS-safe request (no preflight)
   async function api(action, payload) {
     const res = await fetch(CONFIG.webAppUrl, {
       method: "POST",
@@ -643,7 +607,7 @@
 
       if (maxSeats === 1) {
         state.attendingCount = 1;
-        state.attendeeNames = [inviteName]; // convenience
+        state.attendeeNames = [inviteName];
       } else {
         state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
         syncAttendeeNames_(maxSeats);
@@ -719,7 +683,7 @@
         return render();
       }
 
-      // Decline: submit immediately
+      // Decline: submit immediately, stop flow
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -981,13 +945,12 @@
       }
     }
 
-    // IMPORTANT: send exactly what guest sees (09XX XXX XXXX)
     const payload = {
       invite_id: state.invite.invite_id,
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible,
+      phone: phoneCheck.visible, // save exactly what guest sees (09XX XXX XXXX)
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -1087,8 +1050,7 @@
     render();
   }
 
-  // Initial load: start visible and ready
-  showUI_();
+  // Initial load
   resetAll();
 </script>
 </body>
