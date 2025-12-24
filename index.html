@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RSVP</title>
-
   <style>
     :root{
       --bg: rgba(15, 15, 20, 0.55);
@@ -14,12 +13,10 @@
       --border: #e5e7eb;
       --shadow: 0 24px 80px rgba(0,0,0,.18);
       --radius: 18px;
-
       --btn: #111827;
       --btnText: #ffffff;
       --btnAlt: #f3f4f6;
       --btnAltText: #111827;
-
       --danger: #b91c1c;
       --ok: #166534;
     }
@@ -32,6 +29,7 @@
       color: var(--text);
     }
 
+    /* Overlay + modal */
     #overlay{
       position: fixed;
       inset: 0;
@@ -50,7 +48,6 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
-      position: relative;
     }
 
     header{
@@ -60,7 +57,6 @@
       gap: 12px;
       padding: 18px 18px 12px;
       border-bottom: 1px solid var(--border);
-      position: relative;
     }
 
     .title{
@@ -68,7 +64,6 @@
       font-size: 18px;
       line-height: 1.2;
       letter-spacing: .2px;
-      padding-right: 44px; /* room for X */
     }
 
     .subtitle{
@@ -76,29 +71,13 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
-      padding-right: 44px; /* room for X */
     }
 
-    .xBtn{
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #fff;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      line-height: 1;
-      color: var(--text);
-      user-select: none;
+    .headerBtns{
+      display:flex;
+      gap: 8px;
+      flex-shrink: 0;
     }
-    .xBtn:hover{ background: #f9fafb; }
-    .xHidden{ display:none !important; }
 
     main{ padding: 16px 18px 18px; }
 
@@ -223,6 +202,7 @@
     }
 
     .divider{ height: 1px; background: var(--border); margin: 14px 0; }
+
     .hidden{ display:none !important; }
 
     .summaryBox{
@@ -261,9 +241,10 @@
           <h1 class="title" id="headerTitle">RSVP</h1>
           <p class="subtitle" id="headerSubtitle">Find your invite to get started.</p>
         </div>
-
-        <!-- Sticky X (hidden on end screens) -->
-        <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
+        <div class="headerBtns">
+          <button class="btn secondary" id="startOverBtn" type="button">Start over</button>
+          <button class="btn secondary" id="closeBtn" type="button">Close</button>
+        </div>
       </header>
 
       <main>
@@ -284,9 +265,9 @@
           </div>
         </section>
 
-        <!-- PICK -->
+        <!-- PICK (multiple matches) -->
         <section id="stepPick" class="col hidden">
-          <div class="chip">Multiple matches found</div>
+          <div class="chip" id="pickChip">Multiple matches found</div>
           <div id="pickList" class="col"></div>
           <div id="pickErr" class="err hidden"></div>
 
@@ -407,9 +388,10 @@
           </div>
 
           <div id="submitErr" class="err hidden"></div>
+          <div id="submitOk" class="ok hidden"></div>
         </section>
 
-        <!-- THANKS (end screen: NO X, close button bottom) -->
+        <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">Thanks, you’re all set.</div>
@@ -425,7 +407,7 @@
           </div>
         </section>
 
-        <!-- DECLINED (end screen: NO X, close button bottom) -->
+        <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">Got it. Thank you for letting us know.</div>
@@ -441,7 +423,7 @@
           </div>
         </section>
 
-        <!-- LOCKED (end screen: NO X, close button bottom) -->
+        <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
           <div class="summaryBox">
             <div style="font-size:16px; font-weight:600;">RSVP already received</div>
@@ -464,6 +446,9 @@
   </div>
 
   <script>
+    /* =========================
+       CONFIG (v3 snapshot)
+    ========================== */
     var CONFIG = {
       webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
       maxSeatsCap: 4,
@@ -471,28 +456,15 @@
         "If you already RSVP’d and need to update something, please contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
     };
 
+    /* =========================
+       Helpers
+    ========================== */
     function $(id){ return document.getElementById(id); }
     function show(el){ el.classList.remove("hidden"); }
     function hide(el){ el.classList.add("hidden"); }
     function setText(el, txt){ el.textContent = txt; }
     function showErr(el, msg){ setText(el, msg); show(el); }
     function clearErr(el){ setText(el, ""); hide(el); }
-
-    function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
-
-    // Title Case per word, keeps hyphens + apostrophes
-    function titleCaseName_(s){
-      s = normalizeSpaces_(s).toLowerCase();
-      var out = "";
-      var capNext = true;
-      for (var i = 0; i < s.length; i++){
-        var ch = s[i];
-        if (capNext && /[a-z]/.test(ch)) { out += ch.toUpperCase(); capNext = false; }
-        else out += ch;
-        if (ch === " " || ch === "-" || ch === "'") capNext = true;
-      }
-      return out;
-    }
 
     function hideAllSteps(){
       hide($("stepFind"));
@@ -506,63 +478,73 @@
       hide($("stepLocked"));
     }
 
-    function setXVisible_(visible){
-      if (visible) $("xBtn").classList.remove("xHidden");
-      else $("xBtn").classList.add("xHidden");
-    }
-
     function go(stepId, title, subtitle){
       hideAllSteps();
       show($(stepId));
       if (title) setText($("headerTitle"), title);
       if (subtitle) setText($("headerSubtitle"), subtitle);
-
-      var endScreens = (stepId === "stepThanks" || stepId === "stepDeclined" || stepId === "stepLocked");
-      setXVisible_(!endScreens);
-
       window.scrollTo(0,0);
     }
 
-    // Avoid CORS preflight for Apps Script by using text/plain
     function postJson(action, payload){
       return fetch(CONFIG.webAppUrl, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(Object.assign({ action: action }, payload || {}))
-      }).then(function(r){
-        return r.text().then(function(t){
-          try { return JSON.parse(t); }
-          catch(e){ return { ok:false, error:"Bad response from server." }; }
-        });
-      });
+      }).then(function(r){ return r.json(); });
     }
 
+    /* =========================
+       Close behavior for Readymag iframe mode
+    ========================== */
     function closeRSVP(){
-      // This is what your Readymag overlay listens for
+      // If embedded in Readymag (iframe), tell parent to remove iframe
       if (window.parent && window.parent !== window) {
         window.parent.postMessage("RSVP:CLOSE", "*");
         return;
       }
-      // Fallback if opened in a popup
+
+      // If opened as a popup via window.open, attempt to close
       if (window.opener && !window.opener.closed) {
         window.close();
         return;
       }
+
+      // Fallback if opened directly in a normal tab
       window.location.href = "/";
     }
 
-    /* Phone v3 (store visible 09XX XXX XXXX) */
+    /* =========================
+       Phone v3 rules
+       - UI stores digits only
+       - Display formats as 09XX XXX XXXX
+       - Validate at Phone step and again on Submit
+       - Store exactly the visible formatted phone in the sheet
+    ========================== */
     var phoneDigits = "";
 
-    function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
+    function digitsOnly(s){
+      return (s || "").replace(/\D+/g, "");
+    }
 
     function formatPHVisible(d){
-      var x = (d || "");
-      if (x.indexOf("63") === 0 && x.length >= 12) x = "0" + x.slice(2);
-      x = x.slice(0, 11);
+      // Expect up to 11 digits, starting with 09
+      var x = (d || "").slice(0, 11);
+
+      // If user pasted 63xxxxxxxxxx, try to normalize to 09xxxxxxxxx
+      if (x.length >= 12 && x.indexOf("63") === 0) {
+        // not used because we slice 11, but keep logic safe
+        x = x.slice(2);
+      }
+      if (x.indexOf("63") === 0 && x.length === 12) {
+        x = "0" + x.slice(2);
+      }
+
+      // Format as 09XX XXX XXXX
       var a = x.slice(0, 4);
       var b = x.slice(4, 7);
       var c = x.slice(7, 11);
+
       var out = a;
       if (b.length) out += " " + b;
       if (c.length) out += " " + c;
@@ -582,30 +564,75 @@
 
     function validatePhone(showMessage){
       var visible = setPhoneFromInput();
-      if (!visible) {
+
+      // Required vs invalid behavior
+      if (!visible || visible.length === 0) {
         if (showMessage) showErr($("phoneErr"), "Phone number is required.");
-        return { ok:false, kind:"required", visible:visible };
+        return { ok: false, kind: "required", visible: visible };
       }
       if (!isValidPHVisible(visible)) {
         if (showMessage) showErr($("phoneErr"), "Phone number is invalid. Please use 09XX XXX XXXX.");
-        return { ok:false, kind:"invalid", visible:visible };
+        return { ok: false, kind: "invalid", visible: visible };
       }
+
       clearErr($("phoneErr"));
-      return { ok:true, kind:"ok", visible:visible };
+      return { ok: true, kind: "ok", visible: visible };
     }
 
+    /* =========================
+       State
+    ========================== */
     var state = {
+      queryName: "",
       matches: [],
-      selected: null,
-      inviteId: null,
-      status: null,
+      selected: null,        // object returned from backend (invite)
+      inviteId: null,        // key to submit
+      status: null,          // "Attending" | "Declined"
       attendingCount: 0,
-      attendees: [],
+      attendees: [],         // list of names length attendingCount
       transportation: "",
       phoneVisible: "",
       notes: ""
     };
 
+    function resetState(){
+      state = {
+        queryName: "",
+        matches: [],
+        selected: null,
+        inviteId: null,
+        status: null,
+        attendingCount: 0,
+        attendees: [],
+        transportation: "",
+        phoneVisible: "",
+        notes: ""
+      };
+      phoneDigits = "";
+      $("nameInput").value = "";
+      $("notesInput").value = "";
+      $("phoneInput").value = "";
+      clearErr($("findErr"));
+      clearErr($("pickErr"));
+      clearErr($("comingErr"));
+      clearErr($("transpoErr"));
+      clearErr($("phoneErr"));
+      clearErr($("submitErr"));
+      hide($("submitOk"));
+      setText($("submitOk"), "");
+      setText($("contactLine"), CONFIG.contactLineText);
+      setText($("contactLine2"), CONFIG.contactLineText);
+      setText($("contactLine3"), CONFIG.contactLineText);
+      buildCountSelect(CONFIG.maxSeatsCap);
+      buildAttendeeInputs(1);
+      setYesNo(null);
+      hide($("attendingBox"));
+      go("stepFind", "RSVP", "Find your invite to get started.");
+    }
+
+    /* =========================
+       UI builders
+    ========================== */
     function buildCountSelect(max){
       var sel = $("countSelect");
       sel.innerHTML = "";
@@ -627,41 +654,35 @@
         var wrap = document.createElement("div");
         var lab = document.createElement("label");
         lab.textContent = (i === 0) ? "Attendee full name" : ("Attendee " + (i+1) + " full name");
-
         var inp = document.createElement("input");
         inp.type = "text";
-        inp.placeholder = "Type full name";
+        inp.placeholder = (i === 0) ? "Type full name" : "Type full name";
         inp.dataset.idx = String(i);
-
         inp.addEventListener("input", function(e){
           var idx = parseInt(e.target.dataset.idx, 10);
-          state.attendees[idx] = normalizeSpaces_(e.target.value);
+          state.attendees[idx] = e.target.value.trim();
         });
-
-        inp.addEventListener("blur", function(e){
-          var idx = parseInt(e.target.dataset.idx, 10);
-          var fixed = titleCaseName_(e.target.value);
-          e.target.value = fixed;
-          state.attendees[idx] = fixed;
-        });
-
         wrap.appendChild(lab);
         wrap.appendChild(inp);
         box.appendChild(wrap);
       }
+      // Seed array
       state.attendees = new Array(n).fill("");
     }
 
     function setYesNo(val){
-      $("btnYes").classList.remove("active");
-      $("btnNo").classList.remove("active");
-      if (val === "Yes") $("btnYes").classList.add("active");
-      if (val === "No") $("btnNo").classList.add("active");
+      var yes = $("btnYes");
+      var no = $("btnNo");
+      yes.classList.remove("active");
+      no.classList.remove("active");
+      if (val === "Yes") yes.classList.add("active");
+      if (val === "No") no.classList.add("active");
     }
 
     function setTranspo(val){
       state.transportation = val || "";
-      $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]").forEach(function(b){
+      var btns = $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]");
+      btns.forEach(function(b){
         b.classList.toggle("active", b.getAttribute("data-transpo") === state.transportation);
       });
     }
@@ -674,7 +695,9 @@
         btn.type = "button";
         btn.className = "btn pickBtn";
         btn.textContent = m.display_name || m.name || "Select";
-        btn.addEventListener("click", function(){ selectMatch(m); });
+        btn.addEventListener("click", function(){
+          selectMatch(m);
+        });
         list.appendChild(btn);
       });
     }
@@ -685,39 +708,26 @@
       setText($("sumSeats"), String(seats));
     }
 
-    function resetState(){
-      state = { matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
-      phoneDigits = "";
-      $("nameInput").value = "";
-      $("notesInput").value = "";
-      $("phoneInput").value = "";
-      clearErr($("findErr"));
-      clearErr($("pickErr"));
-      clearErr($("comingErr"));
-      clearErr($("transpoErr"));
-      clearErr($("phoneErr"));
-      clearErr($("submitErr"));
-      setText($("contactLine"), CONFIG.contactLineText);
-      setText($("contactLine2"), CONFIG.contactLineText);
-      setText($("contactLine3"), CONFIG.contactLineText);
-      buildCountSelect(CONFIG.maxSeatsCap);
-      buildAttendeeInputs(1);
-      setYesNo(null);
-      hide($("attendingBox"));
-      go("stepFind", "RSVP", "Find your invite to get started.");
-    }
-
+    /* =========================
+       Flow logic
+    ========================== */
     function startFind(){
       clearErr($("findErr"));
-      var q = normalizeSpaces_($("nameInput").value);
-      if (!q){ showErr($("findErr"), "Please enter your name."); return; }
+      var q = ($("nameInput").value || "").trim();
+      state.queryName = q;
+
+      if (!q) {
+        showErr($("findErr"), "Please enter your name.");
+        return;
+      }
 
       $("findBtn").disabled = true;
+
       postJson("find", { name: q })
         .then(function(res){
           $("findBtn").disabled = false;
 
-          if (!res || res.ok === false){
+          if (!res || res.ok === false) {
             showErr($("findErr"), (res && res.error) ? res.error : "Something went wrong. Please try again.");
             return;
           }
@@ -725,16 +735,17 @@
           var matches = res.matches || [];
           state.matches = matches;
 
-          if (matches.length === 0){
+          if (matches.length === 0) {
             showErr($("findErr"), "No match found. Please check spelling or try a different name.");
             return;
           }
 
-          if (matches.length === 1){
+          if (matches.length === 1) {
             selectMatch(matches[0]);
             return;
           }
 
+          // Multiple matches
           renderPickList(matches);
           clearErr($("pickErr"));
           go("stepPick", "Select your invite", "Choose the name that matches your invite.");
@@ -746,25 +757,30 @@
     }
 
     function selectMatch(match){
+      // match should carry an invite_id or id
       var inviteId = match.invite_id || match.id || match.key;
-      if (!inviteId){ showErr($("pickErr"), "This invite is missing an ID. Please try again."); return; }
+      if (!inviteId) {
+        showErr($("pickErr"), "This invite is missing an ID. Please try again.");
+        return;
+      }
 
       state.inviteId = inviteId;
 
       postJson("get", { invite_id: inviteId })
         .then(function(res){
-          if (!res || res.ok === false){
+          if (!res || res.ok === false) {
             showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load invite. Please try again.");
             return;
           }
 
-          if (res.locked){
+          if (res.locked) {
             go("stepLocked", "RSVP", "RSVP already received.");
             return;
           }
 
           state.selected = res.invite || match;
 
+          // seats
           var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
           buildCountSelect(maxSeats);
           buildAttendeeInputs(1);
@@ -784,25 +800,27 @@
     function comingNext(){
       clearErr($("comingErr"));
 
-      if (!state.status){
+      if (!state.status) {
         showErr($("comingErr"), "Please select Yes or No.");
         return;
       }
 
-      if (state.status === "Declined"){
-        submitRSVP();
+      if (state.status === "Declined") {
+        // Submit immediately on decline
+        submitRSVP(true);
         return;
       }
 
+      // Attending
       state.attendingCount = parseInt($("countSelect").value, 10) || 1;
 
+      // Validate attendee names
       var missing = [];
       for (var i = 0; i < state.attendingCount; i++){
-        var v = titleCaseName_(state.attendees[i]);
-        state.attendees[i] = v;
+        var v = (state.attendees[i] || "").trim();
         if (!v) missing.push(i+1);
       }
-      if (missing.length){
+      if (missing.length) {
         showErr($("comingErr"), "Please enter attendee name" + (missing.length > 1 ? "s" : "") + " for your party.");
         return;
       }
@@ -814,7 +832,7 @@
 
     function transpoNext(){
       clearErr($("transpoErr"));
-      if (!state.transportation){
+      if (!state.transportation) {
         showErr($("transpoErr"), "Please select a transportation option.");
         return;
       }
@@ -825,18 +843,21 @@
     function phoneNext(){
       var v = validatePhone(true);
       if (!v.ok) return;
+
       state.phoneVisible = v.visible;
       go("stepNotes", "RSVP", "Any notes?");
     }
 
-    function submitRSVP(){
+    function submitRSVP(isDeclineFlow){
+      // Re-validate phone on submit if attending
       clearErr($("submitErr"));
+      hide($("submitOk"));
+      setText($("submitOk"), "");
 
-      if (state.status === "Attending"){
-        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); });
-
+      if (state.status === "Attending") {
         var v = validatePhone(true);
-        if (!v.ok){
+        if (!v.ok) {
+          // keep user on Notes, but make the message clearer and actionable
           showErr($("submitErr"), v.kind === "required"
             ? "Phone number is required. Please go back and enter 09XX XXX XXXX."
             : "Phone number is invalid. Please go back and use 09XX XXX XXXX."
@@ -848,7 +869,7 @@
         state.phoneVisible = "";
       }
 
-      state.notes = normalizeSpaces_($("notesInput").value);
+      state.notes = ($("notesInput").value || "").trim();
 
       var payload = {
         invite_id: state.inviteId,
@@ -868,22 +889,24 @@
           $("submitBtn").disabled = false;
           $("comingNextBtn").disabled = false;
 
-          if (!res || res.ok === false){
+          if (!res || res.ok === false) {
             showErr($("submitErr"), (res && res.error) ? res.error : "Unable to submit. Please try again.");
             return;
           }
 
-          if (res.locked){
+          if (res.locked) {
             go("stepLocked", "RSVP", "RSVP already received.");
             return;
           }
 
-          if (state.status === "Declined"){
+          if (state.status === "Declined") {
             go("stepDeclined", "RSVP", "Response recorded.");
             return;
           }
 
-          setText($("thanksLine"), "RSVP received for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests."));
+          // Thanks
+          var msg = "RSVP received for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests.");
+          setText($("thanksLine"), msg);
           go("stepThanks", "RSVP", "Response recorded.");
         })
         .catch(function(){
@@ -893,14 +916,22 @@
         });
     }
 
-    // Bind events
-    $("xBtn").addEventListener("click", closeRSVP);
+    /* =========================
+       Bind events
+    ========================== */
+    $("closeBtn").addEventListener("click", closeRSVP);
     $("thanksCloseBtn").addEventListener("click", closeRSVP);
     $("declineCloseBtn").addEventListener("click", closeRSVP);
     $("lockedCloseBtn").addEventListener("click", closeRSVP);
 
+    $("startOverBtn").addEventListener("click", function(){
+      resetState();
+    });
+
     $("findBtn").addEventListener("click", startFind);
-    $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
+    $("nameInput").addEventListener("keydown", function(e){
+      if (e.key === "Enter") startFind();
+    });
 
     $("pickBackBtn").addEventListener("click", function(){
       go("stepFind", "RSVP", "Find your invite to get started.");
@@ -911,6 +942,7 @@
       setYesNo("Yes");
       show($("attendingBox"));
       clearErr($("comingErr"));
+      // Ensure count and attendee inputs are ready
       state.attendingCount = parseInt($("countSelect").value, 10) || 1;
       buildAttendeeInputs(state.attendingCount);
     });
@@ -934,6 +966,7 @@
 
     $("comingNextBtn").addEventListener("click", comingNext);
 
+    // Transpo pills
     $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]").forEach(function(btn){
       btn.addEventListener("click", function(){
         setTranspo(btn.getAttribute("data-transpo"));
@@ -941,22 +974,42 @@
       });
     });
 
-    $("transpoBackBtn").addEventListener("click", function(){ go("stepComing", "RSVP", "Will you be attending?"); });
+    $("transpoBackBtn").addEventListener("click", function(){
+      go("stepComing", "RSVP", "Will you be attending?");
+    });
+
     $("transpoNextBtn").addEventListener("click", transpoNext);
 
-    $("phoneBackBtn").addEventListener("click", function(){ go("stepTranspo", "RSVP", "Transportation details"); });
+    $("phoneBackBtn").addEventListener("click", function(){
+      go("stepTranspo", "RSVP", "Transportation details");
+    });
 
     $("phoneInput").addEventListener("input", function(){
+      // keep digits-only internal, format display, do not show error on every keystroke
       setPhoneFromInput();
       hide($("phoneErr"));
     });
 
-    $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
+    $("phoneInput").addEventListener("blur", function(){
+      // validate gently on blur
+      validatePhone(false);
+    });
+
     $("phoneNextBtn").addEventListener("click", phoneNext);
 
-    $("notesBackBtn").addEventListener("click", function(){ go("stepPhone", "RSVP", "Contact number"); });
-    $("submitBtn").addEventListener("click", submitRSVP);
+    $("notesBackBtn").addEventListener("click", function(){
+      go("stepPhone", "RSVP", "Contact number");
+    });
 
+    $("submitBtn").addEventListener("click", function(){
+      if (state.status !== "Attending") {
+        submitRSVP(false);
+        return;
+      }
+      submitRSVP(false);
+    });
+
+    // Initialize
     resetState();
   </script>
 </body>
