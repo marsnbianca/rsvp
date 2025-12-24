@@ -1,1099 +1,1054 @@
+<!-- /rsvp/index.html  (V3 + responsive + dark overlay + title-cased attendee names + click-outside-close) -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>RSVP</title>
+
   <style>
     :root{
-      --bg:transparent;
-      --card:#f6f7fb;
-      --text:#141418;
-      --muted:#5a5a66;
-      --line:#dcdde6;
-      --err:#c62828;
+      /* Dark overlay (this is the backdrop you see in GitHub Pages) */
+      --bg: rgba(15, 15, 20, 0.62);
 
-      --btn:#141418;
-      --btnText:#ffffff;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 24px 80px rgba(0,0,0,.18);
+      --radius: 18px;
 
-      /* Pills (Yes/No) */
-      --pillBg:#eef1ff;
-      --pillBorder:#cfd6ff;
-      --pillHover:#e3e8ff;
-      --pillActive:#d7dfff;
-      --pillActiveBorder:#b9c6ff;
+      --btn: #111827;
+      --btnText: #ffffff;
+      --btnAlt: #f3f4f6;
+      --btnAltText: #111827;
+
+      --danger: #b91c1c;
+      --ok: #166534;
     }
 
-    html,body{height:100%}
+    html, body { height: 100%; }
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background:transparent;
-      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: transparent;
+      color: var(--text);
+      overflow: hidden; /* prevent background scroll when modal is open */
     }
 
     /* Overlay */
     #overlay{
-      position:fixed;
-      inset:0;
-      background: rgba(0,0,0,.60);
-      z-index: 9998;
-    }
-
-    /* Modal centered, responsive, Readymag-friendly */
-    #modal{
       position: fixed;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-
-      z-index: 9999;
-      width:min(420px, calc(100vw - 32px));
-      max-height: calc(100vh - 32px);
-      overflow: auto;
-
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.35);
-      text-align:center;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+      box-sizing: border-box;
+      overflow: auto; /* allow scroll on very small screens */
+      -webkit-overflow-scrolling: touch;
     }
 
-    #header{
-      padding:18px 18px 10px;
-      border-bottom:1px solid var(--line);
-      text-align:center;
+    /* Modal */
+    #modal{
+      width: min(560px, calc(100vw - 28px));
+      max-height: calc(100svh - 28px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    #title{
-      margin:0;
-      font-size:20px;
-      font-weight:700;
-      letter-spacing:.2px;
-    }
-
-    #subtitle{
-      margin:8px 0 0;
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.35;
-    }
-
-    #content{
-      padding:16px 18px 18px;
-      text-align:center;
-    }
-
-    .row{
+    header{
       display:flex;
-      flex-direction:column;
-      gap:10px;
-      align-items:center;
-      text-align:center;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
+
+    .title{
+      margin:0;
+      font-size: clamp(16px, 2.2vw, 18px);
+      line-height: 1.2;
+      letter-spacing: .2px;
+    }
+
+    .subtitle{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: clamp(12px, 1.8vw, 13px);
+      line-height: 1.35;
+    }
+
+    .headerBtns{
+      display:flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    main{
+      padding: 14px 16px 16px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .row{ display:flex; gap: 10px; align-items: center; }
+    .col{ display:flex; flex-direction: column; gap: 10px; }
 
     label{
+      font-size: clamp(12px, 1.8vw, 13px);
+      color: var(--muted);
+      margin-bottom: 6px;
       display:block;
-      font-size:13px;
-      color:var(--muted);
-      text-align:center;
     }
 
-    input, select, textarea{
-      width:100%;
-      max-width:360px;
-      box-sizing:border-box;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:#ffffff;
-      color:var(--text);
-      padding:12px 12px;
-      outline:none;
-      font-size:14px;
-      text-align:center;
+    input, textarea, select{
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 12px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
     }
 
-    textarea{
-      min-height:92px;
-      resize:vertical;
-      text-align:center;
+    textarea{ min-height: 92px; resize: vertical; }
+
+    .help{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.35;
     }
 
-    .muted{
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.35;
-      text-align:center;
-      max-width:360px;
+    .err{
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 8px;
+      line-height: 1.35;
     }
 
-    .error{
-      width:100%;
-      max-width:360px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(198,40,40,.35);
-      background: rgba(198,40,40,.08);
-      color:var(--err);
-      font-size:13px;
-      text-align:center;
+    .ok{
+      color: var(--ok);
+      font-size: 12px;
+      margin-top: 8px;
+      line-height: 1.35;
     }
 
-    /* Action buttons (Back / Next / Close / Submit) */
-    .btns{
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      margin-top:16px;
-      flex-wrap:wrap;
+    .btn{
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
     }
 
-    button{
-      border:0;
-      border-radius:12px;
-      padding:11px 14px;
-      font-weight:650;
-      cursor:pointer;
-      font-size:14px;
+    .btn.primary{ background: var(--btn); color: var(--btnText); }
+    .btn.secondary{
+      background: var(--btnAlt);
+      color: var(--btnAltText);
+      border: 1px solid var(--border);
     }
 
-    button.primary{
+    .btn:disabled{ opacity: .55; cursor: not-allowed; }
+
+    .btn.pill{
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn.pill.active{
       background: var(--btn);
       color: var(--btnText);
-      border: none;
-      min-width: 140px;
+      border-color: var(--btn);
     }
 
-    /* Visible hover on dark buttons */
-    button.primary:hover{
-      background:#2a2a30;
-    }
-
-    button.secondary{
-      background:#ffffff;
-      border: 1.5px solid var(--line);
+    .btn.pickBtn{
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      border: 1px solid var(--border);
       color: var(--text);
-      min-width: 140px;
+      border-radius: 14px;
+      padding: 12px 12px;
     }
+    .btn.pickBtn:hover{ background: #f9fafb; }
 
-    button.secondary:hover{
-      background:#f0f1f6;
-      border-color:#c9cada;
-    }
-
-    button:disabled{
-      opacity:.6;
-      cursor:not-allowed;
-    }
-
-    /* Yes/No pills (distinct from nav buttons) */
-    .pillRow{
+    .footer{
       display:flex;
-      gap:10px;
-      justify-content:center;
-      flex-wrap:wrap;
-      margin-top:4px;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
     }
+    .footer .left, .footer .right{ display:flex; gap: 10px; flex-wrap: wrap; }
 
-    .pill{
-      background: var(--pillBg);
-      border: 1.5px solid var(--pillBorder);
-      color: var(--text);
-      min-width:150px;
-      border-radius:999px; /* more pill-like */
-      padding:11px 16px;
-      font-weight:700;
-      transition: background .08s ease, border-color .08s ease;
-    }
-
-    .pill:hover{
-      background: var(--pillHover);
-      border-color: var(--pillActiveBorder);
-    }
-
-    .pill.active{
-      background: var(--pillActive);
-      border-color: var(--pillActiveBorder);
-    }
-
-    /* Name selection buttons (verification list) */
-    .pickList{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      width:100%;
-      align-items:stretch;
-    }
-
-    button.pickBtn{
-      width:100%;
-      max-width:360px;
-      margin:0 auto;
-      padding:14px 16px;
-
-      background:#ffffff;
-      border: 1.5px solid var(--line);
-      border-radius:14px;
-
-      font-size:15px;
-      font-weight:650;
-      color:var(--text);
-      text-align:center;
-    }
-
-    button.pickBtn:hover{
-      background:#f0f1f6;
-      border-color:#c9cada;
-    }
-
-    /* Loading */
-    .loading{
-      display:flex;
+    .chip{
+      display:inline-flex;
       align-items:center;
-      justify-content:center;
-      gap:10px;
-      color:var(--muted);
-      font-size:13px;
-      margin-top:4px;
+      gap:8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 12px;
+      color: var(--muted);
+      width: fit-content;
     }
 
-    .dot{
-      width:6px;
-      height:6px;
-      border-radius:50%;
-      background:var(--muted);
-      animation:b 1s infinite ease-in-out;
+    .divider{ height: 1px; background: var(--border); margin: 14px 0; }
+    .hidden{ display:none !important; }
+
+    .summaryBox{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
     }
 
-    .dot:nth-child(2){animation-delay:.15s}
-    .dot:nth-child(3){animation-delay:.3s}
+    .summaryLine{
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .summaryLine:last-child{ border-bottom: 0; }
+    .summaryKey{ color: var(--muted); }
+    .summaryVal{ color: var(--text); text-align: right; }
 
-    @keyframes b{
-      0%,80%,100%{transform:scale(.7); opacity:.6}
-      40%{transform:scale(1.1); opacity:1}
+    .contactLine{
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
     }
 
-    /* Main close bar button (hidden on Thanks / Locked / Declined) */
-    #closeWrap{
-      padding:12px 18px 16px;
-      border-top:1px solid var(--line);
-      display:none;
-      justify-content:center;
-    }
-
-    #closeBtn{
-      background:#ffffff;
-      border:1.5px solid var(--line);
-      color:var(--text);
-      min-width:180px;
-    }
-
-    #closeBtn:hover{
-      background:#f0f1f6;
-      border-color:#c9cada;
-    }
-
-    /* Mobile: full-width action buttons */
+    /* Mobile tweaks */
     @media (max-width: 420px){
-      button.primary,
-      button.secondary{
-        width: 100%;
-        max-width: 360px;
-      }
-
-      .btns{
-        flex-direction: column;
-        align-items: stretch;
-      }
+      header{ padding: 14px 14px 10px; }
+      main{ padding: 12px 14px 14px; }
+      .headerBtns{ flex-direction: column; align-items: stretch; }
+      .headerBtns .btn{ width: 100%; }
     }
   </style>
 </head>
 
 <body>
-  <div id="overlay" aria-hidden="true"></div>
+  <div id="overlay" role="dialog" aria-modal="true" aria-label="RSVP">
+    <div id="modal">
+      <header>
+        <div>
+          <h1 class="title" id="headerTitle">RSVP</h1>
+          <p class="subtitle" id="headerSubtitle">Find your invite to get started.</p>
+        </div>
+        <div class="headerBtns">
+          <button class="btn secondary" id="startOverBtn" type="button">Start over</button>
+          <button class="btn secondary" id="closeBtn" type="button">Close</button>
+        </div>
+      </header>
 
-  <div id="modal" role="dialog" aria-modal="true">
-    <div id="header">
-      <h1 id="title">RSVP</h1>
-      <p id="subtitle"></p>
-    </div>
+      <main>
+        <!-- FIND -->
+        <section id="stepFind" class="col">
+          <div>
+            <label for="nameInput">Full name</label>
+            <input id="nameInput" type="text" inputmode="text" autocomplete="name" placeholder="Type your name" />
+            <div class="help">Tip: try first and last name.</div>
+            <div id="findErr" class="err hidden"></div>
+          </div>
 
-    <div id="content"></div>
+          <div class="footer">
+            <div class="left"></div>
+            <div class="right">
+              <button class="btn primary" id="findBtn" type="button">Find my invite</button>
+            </div>
+          </div>
+        </section>
 
-    <div id="closeWrap">
-      <button id="closeBtn">Close</button>
+        <!-- PICK -->
+        <section id="stepPick" class="col hidden">
+          <div class="chip" id="pickChip">Multiple matches found</div>
+          <div id="pickList" class="col"></div>
+          <div id="pickErr" class="err hidden"></div>
+
+          <div class="footer">
+            <div class="left">
+              <button class="btn secondary" id="pickBackBtn" type="button">Back</button>
+            </div>
+            <div class="right"></div>
+          </div>
+        </section>
+
+        <!-- COMING -->
+        <section id="stepComing" class="col hidden">
+          <div class="summaryBox">
+            <div class="summaryLine">
+              <div class="summaryKey">Invite</div>
+              <div class="summaryVal" id="sumInviteName">-</div>
+            </div>
+            <div class="summaryLine">
+              <div class="summaryKey">Seats</div>
+              <div class="summaryVal" id="sumSeats">-</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="col">
+            <div>
+              <div class="row" style="justify-content: space-between;">
+                <div>
+                  <label style="margin:0;">Will you be attending?</label>
+                </div>
+                <div class="row">
+                  <button class="btn pill" id="btnYes" type="button">Yes</button>
+                  <button class="btn pill" id="btnNo" type="button">No</button>
+                </div>
+              </div>
+              <div id="comingErr" class="err hidden"></div>
+            </div>
+
+            <div id="attendingBox" class="col hidden">
+              <div>
+                <label for="countSelect">How many in your party will attend?</label>
+                <select id="countSelect"></select>
+                <div class="help">Max: <span id="maxSeatsLabel">4</span></div>
+              </div>
+
+              <div id="attendeeInputs" class="col"></div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <button class="btn secondary" id="comingBackBtn" type="button">Back</button>
+            </div>
+            <div class="right">
+              <button class="btn primary" id="comingNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- TRANSPO -->
+        <section id="stepTranspo" class="col hidden">
+          <div>
+            <label>Transportation</label>
+            <div class="row" style="flex-wrap: wrap;">
+              <button class="btn pill" data-transpo="Driving" type="button">Driving</button>
+              <button class="btn pill" data-transpo="Commute" type="button">Commute</button>
+              <button class="btn pill" data-transpo="Need a ride" type="button">Need a ride</button>
+              <button class="btn pill" data-transpo="Not sure yet" type="button">Not sure yet</button>
+            </div>
+            <div id="transpoErr" class="err hidden"></div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <button class="btn secondary" id="transpoBackBtn" type="button">Back</button>
+            </div>
+            <div class="right">
+              <button class="btn primary" id="transpoNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PHONE -->
+        <section id="stepPhone" class="col hidden">
+          <div>
+            <label for="phoneInput">Phone number (Philippines)</label>
+            <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel" placeholder="09XX XXX XXXX" maxlength="13" />
+            <div class="help">Format: 09XX XXX XXXX</div>
+            <div id="phoneErr" class="err hidden"></div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <button class="btn secondary" id="phoneBackBtn" type="button">Back</button>
+            </div>
+            <div class="right">
+              <button class="btn primary" id="phoneNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTES -->
+        <section id="stepNotes" class="col hidden">
+          <div>
+            <label for="notesInput">Notes (optional)</label>
+            <textarea id="notesInput" placeholder="Dietary restrictions, questions, anything to share"></textarea>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <button class="btn secondary" id="notesBackBtn" type="button">Back</button>
+            </div>
+            <div class="right">
+              <button class="btn primary" id="submitBtn" type="button">Submit RSVP</button>
+            </div>
+          </div>
+
+          <div id="submitErr" class="err hidden"></div>
+          <div id="submitOk" class="ok hidden"></div>
+        </section>
+
+        <!-- THANKS -->
+        <section id="stepThanks" class="col hidden">
+          <div class="summaryBox">
+            <div style="font-size:16px; font-weight:600;">Thanks, you’re all set.</div>
+            <div class="help" id="thanksLine" style="margin-top:8px;">RSVP received.</div>
+            <div class="contactLine" id="contactLine"></div>
+          </div>
+
+          <div class="footer">
+            <div class="left"></div>
+            <div class="right">
+              <button class="btn secondary" id="thanksCloseBtn" type="button">Close</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- DECLINED -->
+        <section id="stepDeclined" class="col hidden">
+          <div class="summaryBox">
+            <div style="font-size:16px; font-weight:600;">Got it. Thank you for letting us know.</div>
+            <div class="help" style="margin-top:8px;">Your response has been recorded.</div>
+            <div class="contactLine" id="contactLine2"></div>
+          </div>
+
+          <div class="footer">
+            <div class="left"></div>
+            <div class="right">
+              <button class="btn secondary" id="declineCloseBtn" type="button">Close</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- LOCKED -->
+        <section id="stepLocked" class="col hidden">
+          <div class="summaryBox">
+            <div style="font-size:16px; font-weight:600;">RSVP already received</div>
+            <div class="help" style="margin-top:8px;">
+              If you need to update your RSVP, please contact Bianca &amp; Mars (or the coordinator).
+            </div>
+            <div class="contactLine" id="contactLine3"></div>
+          </div>
+
+          <div class="footer">
+            <div class="left"></div>
+            <div class="right">
+              <button class="btn secondary" id="lockedCloseBtn" type="button">Close</button>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-<script>
-  const CONFIG = {
-    webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
-    maxSeatsCap: 4
-  };
+  <script>
+    /* =========================
+       CONFIG (v3 snapshot)
+    ========================== */
+    var CONFIG = {
+      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
+      maxSeatsCap: 4,
+      contactLineText:
+        "If you already RSVP’d and need to update something, please contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
+    };
 
-  const state = {
-    step: "find",
-    loading: false,
-    error: "",
-    contactLine: "",
-    nameQuery: "",
-    matches: [],
-    invite: null,
+    /* =========================
+       Helpers
+    ========================== */
+    function $(id){ return document.getElementById(id); }
+    function show(el){ el.classList.remove("hidden"); }
+    function hide(el){ el.classList.add("hidden"); }
+    function setText(el, txt){ el.textContent = txt; }
+    function showErr(el, msg){ setText(el, msg); show(el); }
+    function clearErr(el){ setText(el, ""); hide(el); }
 
-    attending: null,          // "yes" | "no"
-    attendingCount: 1,
-    attendeeNames: [],
-
-    transportation: null,     // "Yes" | "No"
-    phoneDigits: "",          // digits only
-    notes: ""
-  };
-
-  const elTitle = document.getElementById("title");
-  const elSubtitle = document.getElementById("subtitle");
-  const elContent = document.getElementById("content");
-  const elCloseWrap = document.getElementById("closeWrap");
-  const elCloseBtn = document.getElementById("closeBtn");
-  elCloseBtn.addEventListener("click", closeModal);
-
-  function setHeader(title, subtitle) {
-    elTitle.textContent = title;
-    elSubtitle.textContent = subtitle || "";
-  }
-
-  function errorEl(msg) {
-    const err = document.createElement("div");
-    err.className = "error";
-    err.textContent = msg;
-    return err;
-  }
-
-  function pill(text, active, onClick) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "pill" + (active ? " active" : "");
-    b.textContent = text;
-    b.addEventListener("click", onClick);
-    return b;
-  }
-
-  function clamp(n, a, b) {
-    const x = Number(n);
-    if (!Number.isFinite(x)) return a;
-    return Math.min(Math.max(x, a), b);
-  }
-
-  function loadingRow() {
-    const div = document.createElement("div");
-    div.className = "loading";
-    div.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Loading…</span>`;
-    return div;
-  }
-
-  async function api(action, payload) {
-    const res = await fetch(CONFIG.webAppUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action, ...(payload || {}) })
-    });
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch (e) { return { ok: false, error: "Invalid server response.", raw: text }; }
-  }
-
-  function syncAttendeeNames_(maxSeats) {
-    const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-    state.attendingCount = cnt;
-
-    const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
-    while (arr.length < cnt) arr.push("");
-    state.attendeeNames = arr;
-  }
-
-  // v2 + phone-visible save:
-  function digits11_(s) {
-    return String(s || "").replace(/[^\d]/g, "").slice(0, 11);
-  }
-
-  function formatPH09_(digits) {
-    const d = digits11_(digits);
-    const p1 = d.slice(0, 4);
-    const p2 = d.slice(4, 7);
-    const p3 = d.slice(7, 11);
-    if (d.length <= 4) return p1;
-    if (d.length <= 7) return `${p1} ${p2}`;
-    return `${p1} ${p2} ${p3}`;
-  }
-
-  function phoneStatus_(digits) {
-    const d = digits11_(digits);
-    if (!d) return { ok: false, reason: "empty", visible: "" };
-    if (d.length !== 11 || !d.startsWith("09")) return { ok: false, reason: "invalid", visible: formatPH09_(d) };
-    return { ok: true, reason: "ok", visible: formatPH09_(d) };
-  }
-
-  function render() {
-    elContent.innerHTML = "";
-
-    if (state.step === "find") return renderFind();
-    if (state.step === "pick") return renderPick();
-    if (state.step === "coming") return renderComing();
-    if (state.step === "transpo") return renderTranspo();
-    if (state.step === "phone") return renderPhone();
-    if (state.step === "notes") return renderNotes();
-    if (state.step === "locked") return renderLocked();
-    if (state.step === "thanks") return renderThanks();
-    if (state.step === "declined") return renderDeclined();
-
-    state.step = "find";
-    renderFind();
-  }
-
-  function renderFind() {
-    setHeader("Find your invite", "Type the name on the invitation.");
-    elCloseWrap.style.display = "none";
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Full name";
-    input.value = state.nameQuery;
-    input.addEventListener("input", (e) => state.nameQuery = e.target.value);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
-    wrap.appendChild(input);
-
-    if (state.loading) wrap.appendChild(loadingRow());
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const btn = document.createElement("button");
-    btn.className = "primary";
-    btn.type = "button";
-    btn.textContent = "Find invite";
-    btn.disabled = state.loading;
-    btn.onclick = onFind;
-
-    btns.appendChild(btn);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-    setTimeout(() => input.focus(), 0);
-  }
-
-  async function onFind() {
-    state.error = "";
-    const name = (state.nameQuery || "").trim();
-    if (!name) { state.error = "Please type a name first."; return render(); }
-
-    state.loading = true;
-    render();
-
-    try {
-      const data = await api("find", { name });
-      state.loading = false;
-
-      if (!data || !data.ok) throw new Error(data?.error || "Search failed.");
-      state.contactLine = data.contact_line || "";
-      state.matches = Array.isArray(data.matches) ? data.matches : [];
-
-      if (state.matches.length === 0) {
-        state.error = "No match found. Try a different spelling.";
-        return render();
-      }
-
-      state.step = "pick";
-      render();
-    } catch (err) {
-      state.loading = false;
-      state.error = String(err?.message || err);
-      render();
+    function normalizeSpaces_(s){
+      return (s || "").replace(/\s+/g, " ").trim();
     }
-  }
 
-  function renderPick() {
-    setHeader("Verify your name", "Tap your name to continue.");
-    elCloseWrap.style.display = "none";
+    // Title Case per word, keeps hyphens and apostrophes
+    function titleCaseName_(s){
+      s = normalizeSpaces_(s).toLowerCase();
+      var out = "";
+      var capNext = true;
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const list = document.createElement("div");
-    list.className = "pickList";
-
-    state.matches.forEach((m) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "pickBtn";
-      btn.textContent = m.invite_name || "Unnamed guest";
-      btn.onclick = () => onPick(m);
-      list.appendChild(btn);
-    });
-
-    wrap.appendChild(list);
-
-    if (state.loading) wrap.appendChild(loadingRow());
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.type = "button";
-    back.textContent = "Back";
-    back.disabled = state.loading;
-    back.onclick = () => { state.error = ""; state.step = "find"; render(); };
-
-    btns.appendChild(back);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  async function onPick(m) {
-    state.error = "";
-    state.loading = true;
-    render();
-
-    try {
-      const data = await api("get", { invite_id: m.invite_id });
-      state.loading = false;
-
-      if (!data || !data.ok) throw new Error(data?.error || "Could not load invite.");
-
-      state.contactLine = data.contact_line || state.contactLine || "";
-      state.invite = data.invite || null;
-
-      if (!state.invite) throw new Error("Missing invite data.");
-
-      if (state.invite.locked) {
-        state.step = "locked";
-        return render();
+      for (var i = 0; i < s.length; i++){
+        var ch = s[i];
+        if (capNext && /[a-z]/.test(ch)){
+          out += ch.toUpperCase();
+          capNext = false;
+        } else {
+          out += ch;
+        }
+        if (ch === " " || ch === "-" || ch === "'") capNext = true;
       }
-
-      state.attending = null;
-      state.attendingCount = 1;
-      state.attendeeNames = [];
-      state.transportation = null;
-      state.phoneDigits = "";
-      state.notes = "";
-
-      state.step = "coming";
-      render();
-    } catch (err) {
-      state.loading = false;
-      state.error = String(err?.message || err);
-      render();
+      return out;
     }
-  }
 
-  function renderComing() {
-    const inviteName = state.invite?.invite_name || "Guest";
-    const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
+    function hideAllSteps(){
+      hide($("stepFind"));
+      hide($("stepPick"));
+      hide($("stepComing"));
+      hide($("stepTranspo"));
+      hide($("stepPhone"));
+      hide($("stepNotes"));
+      hide($("stepThanks"));
+      hide($("stepDeclined"));
+      hide($("stepLocked"));
+    }
 
-    setHeader("RSVP", `${inviteName}, are you coming?`);
-    elCloseWrap.style.display = "none";
+    function go(stepId, title, subtitle){
+      hideAllSteps();
+      show($(stepId));
+      if (title) setText($("headerTitle"), title);
+      if (subtitle) setText($("headerSubtitle"), subtitle);
+      $("modal").scrollTop = 0;
+      $("overlay").scrollTop = 0;
+    }
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
+    function postJson(action, payload){
+      return fetch(CONFIG.webAppUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+      }).then(function(r){ return r.json(); });
+    }
 
-    const pills = document.createElement("div");
-    pills.className = "pillRow";
-
-    pills.appendChild(pill("Yes", state.attending === "yes", () => {
-      state.attending = "yes";
-
-      if (maxSeats === 1) {
-        state.attendingCount = 1;
-        state.attendeeNames = [inviteName];
-      } else {
-        state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
-        syncAttendeeNames_(maxSeats);
+    /* =========================
+       Close behavior for Readymag iframe mode
+    ========================== */
+    function closeRSVP(){
+      // Embedded in Readymag overlay iframe
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage("RSVP:CLOSE", "*");
+        return;
       }
 
-      state.error = "";
-      render();
-    }));
-
-    pills.appendChild(pill("No", state.attending === "no", () => {
-      state.attending = "no";
-      state.attendingCount = 0;
-      state.attendeeNames = [];
-      state.error = "";
-      render();
-    }));
-
-    wrap.appendChild(pills);
-
-    if (state.attending === "yes" && maxSeats > 1) {
-      const select = document.createElement("select");
-      for (let i = 1; i <= maxSeats; i++) {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = `${i}`;
-        if (i === Number(state.attendingCount || 1)) opt.selected = true;
-        select.appendChild(opt);
+      // If opened as a popup via window.open
+      if (window.opener && !window.opener.closed) {
+        window.close();
+        return;
       }
-      select.onchange = (e) => {
-        state.attendingCount = Number(e.target.value);
-        syncAttendeeNames_(maxSeats);
-        render();
+
+      // Fallback if opened directly
+      window.location.href = "/";
+    }
+
+    /* =========================
+       Phone v3 rules
+       - UI stores digits only
+       - Display formats as 09XX XXX XXXX
+       - Validate at Phone step and again on Submit
+       - Store exactly the visible formatted phone in the sheet
+    ========================== */
+    var phoneDigits = "";
+
+    function digitsOnly(s){
+      return (s || "").replace(/\D+/g, "");
+    }
+
+    function formatPHVisible(d){
+      var x = (d || "");
+
+      // If user pasted +63..., try to convert to 0...
+      if (x.indexOf("63") === 0 && x.length >= 12) {
+        x = "0" + x.slice(2);
+      }
+
+      x = x.slice(0, 11);
+
+      // Format as 09XX XXX XXXX
+      var a = x.slice(0, 4);
+      var b = x.slice(4, 7);
+      var c = x.slice(7, 11);
+
+      var out = a;
+      if (b.length) out += " " + b;
+      if (c.length) out += " " + c;
+      return out.trim();
+    }
+
+    function isValidPHVisible(visible){
+      return /^09\d{2}\s\d{3}\s\d{4}$/.test((visible || "").trim());
+    }
+
+    function setPhoneFromInput(){
+      phoneDigits = digitsOnly($("phoneInput").value);
+      var visible = formatPHVisible(phoneDigits);
+      $("phoneInput").value = visible;
+      return visible;
+    }
+
+    function validatePhone(showMessage){
+      var visible = setPhoneFromInput();
+
+      if (!visible || visible.length === 0) {
+        if (showMessage) showErr($("phoneErr"), "Phone number is required.");
+        return { ok: false, kind: "required", visible: visible };
+      }
+      if (!isValidPHVisible(visible)) {
+        if (showMessage) showErr($("phoneErr"), "Phone number is invalid. Please use 09XX XXX XXXX.");
+        return { ok: false, kind: "invalid", visible: visible };
+      }
+
+      clearErr($("phoneErr"));
+      return { ok: true, kind: "ok", visible: visible };
+    }
+
+    /* =========================
+       State
+    ========================== */
+    var state = {
+      queryName: "",
+      matches: [],
+      selected: null,
+      inviteId: null,
+      status: null,
+      attendingCount: 0,
+      attendees: [],
+      transportation: "",
+      phoneVisible: "",
+      notes: ""
+    };
+
+    function resetState(){
+      state = {
+        queryName: "",
+        matches: [],
+        selected: null,
+        inviteId: null,
+        status: null,
+        attendingCount: 0,
+        attendees: [],
+        transportation: "",
+        phoneVisible: "",
+        notes: ""
       };
-      wrap.appendChild(select);
-
-      syncAttendeeNames_(maxSeats);
-
-      const note = document.createElement("div");
-      note.className = "muted";
-      note.textContent = "Please enter the full name of each attendee.";
-      wrap.appendChild(note);
-
-      for (let i = 0; i < state.attendingCount; i++) {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = `Attendee ${i + 1} full name`;
-        input.value = state.attendeeNames[i] || "";
-        input.oninput = (e) => { state.attendeeNames[i] = e.target.value; };
-        wrap.appendChild(input);
-      }
+      phoneDigits = "";
+      $("nameInput").value = "";
+      $("notesInput").value = "";
+      $("phoneInput").value = "";
+      clearErr($("findErr"));
+      clearErr($("pickErr"));
+      clearErr($("comingErr"));
+      clearErr($("transpoErr"));
+      clearErr($("phoneErr"));
+      clearErr($("submitErr"));
+      hide($("submitOk"));
+      setText($("submitOk"), "");
+      setText($("contactLine"), CONFIG.contactLineText);
+      setText($("contactLine2"), CONFIG.contactLineText);
+      setText($("contactLine3"), CONFIG.contactLineText);
+      buildCountSelect(CONFIG.maxSeatsCap);
+      buildAttendeeInputs(1);
+      setYesNo(null);
+      hide($("attendingBox"));
+      go("stepFind", "RSVP", "Find your invite to get started.");
     }
 
-    if (state.loading) wrap.appendChild(loadingRow());
-    if (state.error) wrap.appendChild(errorEl(state.error));
+    /* =========================
+       UI builders
+    ========================== */
+    function buildCountSelect(max){
+      var sel = $("countSelect");
+      sel.innerHTML = "";
+      var cap = Math.max(1, Math.min(CONFIG.maxSeatsCap, max || CONFIG.maxSeatsCap));
+      setText($("maxSeatsLabel"), String(cap));
+      for (var i = 1; i <= cap; i++){
+        var opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = String(i);
+        sel.appendChild(opt);
+      }
+      sel.value = "1";
+    }
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
+    function buildAttendeeInputs(n){
+      var box = $("attendeeInputs");
+      box.innerHTML = "";
+      for (var i = 0; i < n; i++){
+        var wrap = document.createElement("div");
 
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.textContent = "Back";
-    back.onclick = () => { state.error = ""; state.step = "pick"; render(); };
+        var lab = document.createElement("label");
+        lab.textContent = (i === 0) ? "Attendee full name" : ("Attendee " + (i+1) + " full name");
 
-    const next = document.createElement("button");
-    next.className = "primary";
-    next.textContent = "Next";
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.placeholder = "Type full name";
+        inp.dataset.idx = String(i);
 
-    next.onclick = async () => {
-      state.error = "";
+        inp.addEventListener("input", function(e){
+          var idx = parseInt(e.target.dataset.idx, 10);
+          state.attendees[idx] = normalizeSpaces_(e.target.value);
+        });
 
-      if (state.attending !== "yes" && state.attending !== "no") {
-        state.error = "Please choose Yes or No.";
-        return render();
+        inp.addEventListener("blur", function(e){
+          var idx = parseInt(e.target.dataset.idx, 10);
+          var fixed = titleCaseName_(e.target.value);
+          e.target.value = fixed;
+          state.attendees[idx] = fixed;
+        });
+
+        wrap.appendChild(lab);
+        wrap.appendChild(inp);
+        box.appendChild(wrap);
+      }
+      state.attendees = new Array(n).fill("");
+    }
+
+    function setYesNo(val){
+      var yes = $("btnYes");
+      var no = $("btnNo");
+      yes.classList.remove("active");
+      no.classList.remove("active");
+      if (val === "Yes") yes.classList.add("active");
+      if (val === "No") no.classList.add("active");
+    }
+
+    function setTranspo(val){
+      state.transportation = val || "";
+      var btns = $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]");
+      btns.forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-transpo") === state.transportation);
+      });
+    }
+
+    function renderPickList(matches){
+      var list = $("pickList");
+      list.innerHTML = "";
+      matches.forEach(function(m){
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn pickBtn";
+        btn.textContent = m.display_name || m.name || "Select";
+        btn.addEventListener("click", function(){ selectMatch(m); });
+        list.appendChild(btn);
+      });
+    }
+
+    function updateSummary(){
+      setText($("sumInviteName"), (state.selected && (state.selected.display_name || state.selected.name)) || "-");
+      var seats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+      setText($("sumSeats"), String(seats));
+    }
+
+    /* =========================
+       Flow logic
+    ========================== */
+    function startFind(){
+      clearErr($("findErr"));
+      var q = normalizeSpaces_($("nameInput").value);
+      state.queryName = q;
+
+      if (!q) {
+        showErr($("findErr"), "Please enter your name.");
+        return;
       }
 
-      // Decline: submit immediately, stop flow
-      if (state.attending === "no") {
-        state.loading = true;
-        render();
-        try {
-          const payload = {
-            invite_id: state.invite.invite_id,
-            attending: "no",
-            attending_count: 0,
-            attendees: [],
-            phone: "",
-            transportation: "",
-            notes: ""
-          };
-          const data = await api("submit", payload);
-          state.loading = false;
+      $("findBtn").disabled = true;
 
-          if (!data || !data.ok) {
-            if (data && data.locked) {
-              state.contactLine = data.contact_line || state.contactLine || "";
-              state.step = "locked";
-              return render();
-            }
-            throw new Error(data?.error || "Submit failed.");
+      postJson("find", { name: q })
+        .then(function(res){
+          $("findBtn").disabled = false;
+
+          if (!res || res.ok === false) {
+            showErr($("findErr"), (res && res.error) ? res.error : "Something went wrong. Please try again.");
+            return;
           }
 
-          state.step = "declined";
-          return render();
-        } catch (err) {
-          state.loading = false;
-          state.error = String(err?.message || err);
-          return render();
+          var matches = res.matches || [];
+          state.matches = matches;
+
+          if (matches.length === 0) {
+            showErr($("findErr"), "No match found. Please check spelling or try a different name.");
+            return;
+          }
+
+          if (matches.length === 1) {
+            selectMatch(matches[0]);
+            return;
+          }
+
+          renderPickList(matches);
+          clearErr($("pickErr"));
+          go("stepPick", "Select your invite", "Choose the name that matches your invite.");
+        })
+        .catch(function(){
+          $("findBtn").disabled = false;
+          showErr($("findErr"), "Network error. Please try again.");
+        });
+    }
+
+    function selectMatch(match){
+      var inviteId = match.invite_id || match.id || match.key;
+      if (!inviteId) {
+        showErr($("pickErr"), "This invite is missing an ID. Please try again.");
+        return;
+      }
+
+      state.inviteId = inviteId;
+
+      postJson("get", { invite_id: inviteId })
+        .then(function(res){
+          if (!res || res.ok === false) {
+            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load invite. Please try again.");
+            return;
+          }
+
+          if (res.locked) {
+            go("stepLocked", "RSVP", "RSVP already received.");
+            return;
+          }
+
+          state.selected = res.invite || match;
+
+          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+          buildCountSelect(maxSeats);
+          buildAttendeeInputs(1);
+          updateSummary();
+
+          clearErr($("comingErr"));
+          setYesNo(null);
+          hide($("attendingBox"));
+
+          go("stepComing", "RSVP", "Will you be attending?");
+        })
+        .catch(function(){
+          showErr($("pickErr"), "Network error. Please try again.");
+        });
+    }
+
+    function comingNext(){
+      clearErr($("comingErr"));
+
+      if (!state.status) {
+        showErr($("comingErr"), "Please select Yes or No.");
+        return;
+      }
+
+      if (state.status === "Declined") {
+        submitRSVP(true);
+        return;
+      }
+
+      state.attendingCount = parseInt($("countSelect").value, 10) || 1;
+
+      var missing = [];
+      for (var i = 0; i < state.attendingCount; i++){
+        var v = normalizeSpaces_(state.attendees[i]);
+        state.attendees[i] = titleCaseName_(v);
+        if (!state.attendees[i]) missing.push(i+1);
+      }
+      if (missing.length) {
+        showErr($("comingErr"), "Please enter attendee name" + (missing.length > 1 ? "s" : "") + " for your party.");
+        return;
+      }
+
+      clearErr($("transpoErr"));
+      setTranspo(state.transportation || "");
+      go("stepTranspo", "RSVP", "Transportation details");
+    }
+
+    function transpoNext(){
+      clearErr($("transpoErr"));
+      if (!state.transportation) {
+        showErr($("transpoErr"), "Please select a transportation option.");
+        return;
+      }
+      clearErr($("phoneErr"));
+      go("stepPhone", "RSVP", "Contact number");
+    }
+
+    function phoneNext(){
+      var v = validatePhone(true);
+      if (!v.ok) return;
+
+      state.phoneVisible = v.visible;
+      go("stepNotes", "RSVP", "Any notes?");
+    }
+
+    function submitRSVP(){
+      clearErr($("submitErr"));
+      hide($("submitOk"));
+      setText($("submitOk"), "");
+
+      if (state.status === "Attending") {
+        // Force Title Case on submit too
+        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); });
+
+        var v = validatePhone(true);
+        if (!v.ok) {
+          showErr($("submitErr"),
+            v.kind === "required"
+              ? "Phone number is required. Please go back and enter 09XX XXX XXXX."
+              : "Phone number is invalid. Please go back and use 09XX XXX XXXX."
+          );
+          return;
         }
-      }
-
-      // Single invite YES: skip to transpo
-      if (maxSeats === 1) {
-        state.attendingCount = 1;
-        state.attendeeNames = [inviteName];
-        state.step = "transpo";
-        return render();
-      }
-
-      // Party YES validation
-      const cleaned = (state.attendeeNames || [])
-        .slice(0, state.attendingCount)
-        .map(n => (n || "").trim());
-
-      if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
-        state.error = "Please fill in all attendee names.";
-        return render();
-      }
-
-      state.step = "transpo";
-      render();
-    };
-
-    btns.appendChild(back);
-    btns.appendChild(next);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  function renderTranspo() {
-    setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
-    elCloseWrap.style.display = "none";
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const pills = document.createElement("div");
-    pills.className = "pillRow";
-
-    pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; state.error=""; render(); }));
-    pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; state.error=""; render(); }));
-
-    wrap.appendChild(pills);
-
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.textContent = "Back";
-    back.onclick = () => { state.error=""; state.step = "coming"; render(); };
-
-    const next = document.createElement("button");
-    next.className = "primary";
-    next.textContent = "Next";
-    next.onclick = () => {
-      state.error = "";
-      if (state.transportation !== "Yes" && state.transportation !== "No") {
-        state.error = "Please choose Yes or No.";
-        return render();
-      }
-      state.step = "phone";
-      render();
-    };
-
-    btns.appendChild(back);
-    btns.appendChild(next);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  function renderPhone() {
-    setHeader("Mobile number", "Please enter your PH mobile number.");
-    elCloseWrap.style.display = "none";
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const input = document.createElement("input");
-    input.type = "tel";
-    input.inputMode = "numeric";
-    input.autocomplete = "tel";
-    input.placeholder = "09XX XXX XXXX";
-    input.value = formatPH09_(state.phoneDigits);
-
-    input.oninput = (e) => {
-      const digits = digits11_(e.target.value);
-      state.phoneDigits = digits;
-      e.target.value = formatPH09_(digits);
-    };
-
-    wrap.appendChild(input);
-
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.textContent = "Back";
-    back.onclick = () => { state.error=""; state.step = "transpo"; render(); };
-
-    const next = document.createElement("button");
-    next.className = "primary";
-    next.textContent = "Next";
-    next.onclick = () => {
-      state.error = "";
-
-      const s = phoneStatus_(state.phoneDigits);
-      if (!s.ok) {
-        state.error = (s.reason === "empty")
-          ? "Phone number is required."
-          : "Phone number invalid. Please enter 11 digits starting with 09.";
-        return render();
-      }
-
-      state.step = "notes";
-      render();
-    };
-
-    btns.appendChild(back);
-    btns.appendChild(next);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-    setTimeout(() => input.focus(), 0);
-  }
-
-  function renderNotes() {
-    setHeader("Notes", "Anything else? (Optional)");
-    elCloseWrap.style.display = "none";
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const ta = document.createElement("textarea");
-    ta.placeholder = "Type your notes here (optional)";
-    ta.value = state.notes || "";
-    ta.oninput = (e) => state.notes = e.target.value;
-    wrap.appendChild(ta);
-
-    if (state.loading) wrap.appendChild(loadingRow());
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.textContent = "Back";
-    back.disabled = state.loading;
-    back.onclick = () => { state.error=""; state.step = "phone"; render(); };
-
-    const submit = document.createElement("button");
-    submit.className = "primary";
-    submit.textContent = state.loading ? "Submitting…" : "Submit RSVP";
-    submit.disabled = state.loading;
-    submit.onclick = onSubmit;
-
-    btns.appendChild(back);
-    btns.appendChild(submit);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  async function onSubmit() {
-    state.error = "";
-
-    if (!state.invite?.invite_id) {
-      state.error = "Missing invite details. Please start again.";
-      state.step = "find";
-      return render();
-    }
-
-    if (state.attending !== "yes" && state.attending !== "no") {
-      state.error = "Please choose Yes or No.";
-      state.step = "coming";
-      return render();
-    }
-
-    if (state.transportation !== "Yes" && state.transportation !== "No") {
-      state.error = "Please choose Yes or No for transportation.";
-      state.step = "transpo";
-      return render();
-    }
-
-    const phoneCheck = phoneStatus_(state.phoneDigits);
-    if (!phoneCheck.ok) {
-      state.error = phoneCheck.reason === "empty"
-        ? "Phone number is required."
-        : "Phone number invalid. Please enter 11 digits starting with 09.";
-      state.step = "phone";
-      return render();
-    }
-
-    let attendees = [];
-    let attending_count = 0;
-
-    if (state.attending === "yes") {
-      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
-
-      if (maxSeats === 1) {
-        attendees = [String(state.invite.invite_name || "").trim() || "Guest"];
-        attending_count = 1;
+        state.phoneVisible = v.visible;
       } else {
-        const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
-
-        attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
-        if (attendees.length !== cnt || attendees.some(x => !x)) {
-          state.error = "Please fill in all attendee names.";
-          state.step = "coming";
-          return render();
-        }
-        attending_count = cnt;
+        state.phoneVisible = "";
       }
+
+      state.notes = normalizeSpaces_($("notesInput").value);
+
+      var payload = {
+        invite_id: state.inviteId,
+        status: state.status,
+        attending_count: state.status === "Attending" ? state.attendingCount : 0,
+        phone: state.phoneVisible || "",
+        transportation: state.status === "Attending" ? (state.transportation || "") : "",
+        notes: state.notes || "",
+        attendees: state.status === "Attending" ? state.attendees.slice(0, state.attendingCount) : []
+      };
+
+      $("submitBtn").disabled = true;
+      $("comingNextBtn").disabled = true;
+
+      postJson("submit", payload)
+        .then(function(res){
+          $("submitBtn").disabled = false;
+          $("comingNextBtn").disabled = false;
+
+          if (!res || res.ok === false) {
+            showErr($("submitErr"), (res && res.error) ? res.error : "Unable to submit. Please try again.");
+            return;
+          }
+
+          if (res.locked) {
+            go("stepLocked", "RSVP", "RSVP already received.");
+            return;
+          }
+
+          if (state.status === "Declined") {
+            go("stepDeclined", "RSVP", "Response recorded.");
+            return;
+          }
+
+          var msg = "RSVP received for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests.");
+          setText($("thanksLine"), msg);
+          go("stepThanks", "RSVP", "Response recorded.");
+        })
+        .catch(function(){
+          $("submitBtn").disabled = false;
+          $("comingNextBtn").disabled = false;
+          showErr($("submitErr"), "Network error. Please try again.");
+        });
     }
 
-    const payload = {
-      invite_id: state.invite.invite_id,
-      attending: state.attending,
-      attending_count,
-      attendees: state.attending === "yes" ? attendees : [],
-      phone: phoneCheck.visible,         // IMPORTANT: send visible "09XX XXX XXXX"
-      transportation: state.transportation,
-      notes: (state.notes || "").trim()
-    };
+    /* =========================
+       Bind events
+    ========================== */
+    $("closeBtn").addEventListener("click", closeRSVP);
+    $("thanksCloseBtn").addEventListener("click", closeRSVP);
+    $("declineCloseBtn").addEventListener("click", closeRSVP);
+    $("lockedCloseBtn").addEventListener("click", closeRSVP);
 
-    state.loading = true;
-    render();
+    $("startOverBtn").addEventListener("click", function(){ resetState(); });
 
-    try {
-      const data = await api("submit", payload);
-      state.loading = false;
+    $("findBtn").addEventListener("click", startFind);
+    $("nameInput").addEventListener("keydown", function(e){
+      if (e.key === "Enter") startFind();
+    });
 
-      if (!data || !data.ok) {
-        if (data && data.locked) {
-          state.contactLine = data.contact_line || state.contactLine || "";
-          state.step = "locked";
-          return render();
-        }
-        throw new Error(data?.error || "Submit failed.");
-      }
+    $("pickBackBtn").addEventListener("click", function(){
+      go("stepFind", "RSVP", "Find your invite to get started.");
+    });
 
-      state.step = "thanks";
-      render();
-    } catch (err) {
-      state.loading = false;
-      state.error = String(err?.message || err);
-      render();
-    }
-  }
+    $("btnYes").addEventListener("click", function(){
+      state.status = "Attending";
+      setYesNo("Yes");
+      show($("attendingBox"));
+      clearErr($("comingErr"));
+      state.attendingCount = parseInt($("countSelect").value, 10) || 1;
+      buildAttendeeInputs(state.attendingCount);
+    });
 
-  function renderLocked() {
-    setHeader("RSVP already received", "For changes, please contact the coordinator.");
-    elCloseWrap.style.display = "none";
+    $("btnNo").addEventListener("click", function(){
+      state.status = "Declined";
+      setYesNo("No");
+      hide($("attendingBox"));
+      clearErr($("comingErr"));
+    });
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
+    $("countSelect").addEventListener("change", function(){
+      var n = parseInt($("countSelect").value, 10) || 1;
+      state.attendingCount = n;
+      buildAttendeeInputs(n);
+    });
 
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
-    wrap.appendChild(msg);
+    $("comingBackBtn").addEventListener("click", function(){
+      go("stepFind", "RSVP", "Find your invite to get started.");
+    });
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
+    $("comingNextBtn").addEventListener("click", comingNext);
 
-    const startOver = document.createElement("button");
-    startOver.className = "secondary";
-    startOver.textContent = "Start over";
-    startOver.onclick = resetAll;
+    $("stepTranspo").querySelectorAll(".btn.pill[data-transpo]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        setTranspo(btn.getAttribute("data-transpo"));
+        clearErr($("transpoErr"));
+      });
+    });
 
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
+    $("transpoBackBtn").addEventListener("click", function(){
+      go("stepComing", "RSVP", "Will you be attending?");
+    });
 
-    btns.appendChild(startOver);
-    btns.appendChild(close);
-    wrap.appendChild(btns);
+    $("transpoNextBtn").addEventListener("click", transpoNext);
 
-    elContent.appendChild(wrap);
-  }
+    $("phoneBackBtn").addEventListener("click", function(){
+      go("stepTranspo", "RSVP", "Transportation details");
+    });
 
-  function renderThanks() {
-    setHeader("Thank you!", "See you soon.");
-    elCloseWrap.style.display = "none";
+    $("phoneInput").addEventListener("input", function(){
+      setPhoneFromInput();
+      hide($("phoneErr"));
+    });
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
+    $("phoneInput").addEventListener("blur", function(){
+      validatePhone(false);
+    });
 
-    const btns = document.createElement("div");
-    btns.className = "btns";
+    $("phoneNextBtn").addEventListener("click", phoneNext);
 
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
+    $("notesBackBtn").addEventListener("click", function(){
+      go("stepPhone", "RSVP", "Contact number");
+    });
 
-    btns.appendChild(close);
-    wrap.appendChild(btns);
+    $("submitBtn").addEventListener("click", submitRSVP);
 
-    elContent.appendChild(wrap);
-  }
+    // Click outside modal closes (same as Close)
+    $("overlay").addEventListener("click", function(e){
+      if (e.target === $("overlay")) closeRSVP();
+    });
 
-  function renderDeclined() {
-    setHeader("Thank you!", "We’re so sorry you won’t be able to make it!");
-    elCloseWrap.style.display = "none";
+    // Esc closes (nice on desktop)
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape") closeRSVP();
+    });
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.textContent = "Thank you for letting us know.";
-    wrap.appendChild(msg);
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const close = document.createElement("button");
-    close.className = "primary";
-    close.textContent = "Close";
-    close.onclick = closeModal;
-
-    btns.appendChild(close);
-    wrap.appendChild(btns);
-
-    elContent.appendChild(wrap);
-  }
-
-  function resetAll() {
-    state.step = "find";
-    state.loading = false;
-    state.error = "";
-    state.nameQuery = "";
-    state.matches = [];
-    state.invite = null;
-
-    state.attending = null;
-    state.attendingCount = 1;
-    state.attendeeNames = [];
-
-    state.transportation = null;
-    state.phoneDigits = "";
-    state.notes = "";
-
-    render();
-  }
-
-  function closeModal() {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
-      }
-    } catch (e) {}
-
-    const overlay = document.getElementById("overlay");
-    if (overlay) overlay.style.display = "none";
-
-    const modal = document.getElementById("modal");
-    if (modal) modal.style.display = "none";
-
-    try { window.close(); } catch (e) {}
-  }
-
-  document.getElementById("overlay").style.display = "block";
-  document.getElementById("modal").style.display = "block";
-  resetAll();
-</script>
+    // Init
+    resetState();
+  </script>
 </body>
 </html>
