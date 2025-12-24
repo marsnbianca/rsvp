@@ -1101,20 +1101,33 @@
   }
 
   function closeModal() {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
-      }
-    } catch (e) {}
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+    }
+  } catch (e) {}
 
-    const overlay = document.getElementById("overlay");
-    if (overlay) overlay.style.display = "none";
+  // Hide locally too
+  const overlay = document.getElementById("overlay");
+  const modal = document.getElementById("modal");
+  if (overlay) overlay.style.display = "none";
+  if (modal) modal.style.display = "none";
+}
 
-    const modal = document.getElementById("modal");
-    if (modal) modal.style.display = "none";
+  function openModal() {
+  const overlay = document.getElementById("overlay");
+  const modal = document.getElementById("modal");
+  if (overlay) overlay.style.display = "block";
+  if (modal) modal.style.display = "block";
+  resetAll();
+}
 
-    try { window.close(); } catch (e) {}
-  }
+// Listen for a message from Readymag to re-open the modal
+window.addEventListener("message", (e) => {
+  if (!e || !e.data) return;
+  if (e.data.type === "RSVP_OPEN") openModal();
+});
+
 
   document.getElementById("overlay").style.display = "block";
   document.getElementById("modal").style.display = "block";
