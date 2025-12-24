@@ -4,9 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>RSVP</title>
+
   <style>
     :root{
-      --bg: transparent;
+      --overlay: rgba(0,0,0,.40);
+
       --card:#f6f7fb;
       --text:#141418;
       --muted:#5a5a66;
@@ -28,51 +30,61 @@
       --nameHover:#f0f1f7;
 
       --shadow: 0 14px 40px rgba(0,0,0,.18);
-      --radius: 16px;
+      --radius: 18px;
     }
 
     *{ box-sizing:border-box; }
+    html, body { height: 100%; }
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color:var(--text);
-      background: var(--bg);
+      color: var(--text);
+      background: transparent;
     }
 
-    /* Overlay modal */
     .overlay{
       position: fixed;
       inset: 0;
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(0,0,0,.35);
+      background: var(--overlay);
     }
 
+    /* KEY FIX: modal becomes a column layout with a scrollable content area */
     .modal{
       width: min(560px, 100%);
+      max-height: calc(100vh - 32px);
       background: var(--card);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       border: 1px solid rgba(255,255,255,.35);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .modal-inner{
       padding: 18px;
+      overflow: auto;         /* scroll inside modal */
+      -webkit-overflow-scrolling: touch;
+      flex: 1;                /* take remaining height above nav */
     }
 
     .title{
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 800;
       margin: 0 0 6px 0;
+      text-align: center;
       letter-spacing: .2px;
     }
+
     .sub{
       margin: 0 0 14px 0;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
+      text-align: center;
     }
 
     .divider{
@@ -90,7 +102,10 @@
     .label{
       font-size: 12px;
       color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
     }
+
     input[type="text"], input[type="tel"]{
       width: 100%;
       padding: 12px 12px;
@@ -108,16 +123,16 @@
       color: var(--err);
       font-size: 12px;
       margin-top: 8px;
+      text-align: center;
     }
 
-    /* Buttons */
     button{
       border: none;
       cursor: pointer;
       font: inherit;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    /* Name match buttons */
     .btn-name{
       width: 100%;
       text-align: left;
@@ -131,7 +146,6 @@
     .btn-name:hover{ background: var(--nameHover); }
     .btn-name:active{ transform: translateY(1px); }
 
-    /* Choice buttons (Yes/No for questions) */
     .choice-row{
       display:flex;
       gap: 10px;
@@ -146,11 +160,9 @@
       border: 1px solid var(--choiceLine);
       transition: background .15s ease, color .15s ease, transform .02s ease;
       text-align: center;
-      font-weight: 600;
+      font-weight: 800;
     }
-    .btn-choice:hover{
-      background: var(--choiceHover);
-    }
+    .btn-choice:hover{ background: var(--choiceHover); }
     .btn-choice.is-selected{
       background: var(--choiceSelectedBg);
       color: var(--choiceSelectedText);
@@ -158,20 +170,22 @@
     }
     .btn-choice:active{ transform: translateY(1px); }
 
-    /* Nav buttons (Back/Next/Submit/Close) */
+    /* KEY FIX: nav sticks to bottom (always visible) */
     .nav{
       display:flex;
       gap: 10px;
       padding: 14px 18px;
       border-top: 1px solid var(--line);
-      background: rgba(255,255,255,.35);
+      background: rgba(255,255,255,.55);
+      align-items: center;
+      flex: 0 0 auto;
     }
     .btn-nav{
       padding: 12px 14px;
       border-radius: 12px;
       background: var(--btn);
       color: var(--btnText);
-      font-weight: 700;
+      font-weight: 900;
       transition: background .15s ease, transform .02s ease, opacity .15s ease;
       min-width: 110px;
     }
@@ -181,17 +195,14 @@
       background: transparent;
       color: var(--text);
       border: 1px solid var(--line);
-      font-weight: 700;
+      font-weight: 900;
     }
-    .btn-nav.ghost:hover{
-      background: #eef0f8;
-    }
+    .btn-nav.ghost:hover{ background: #eef0f8; }
     .btn-nav:disabled{
       opacity: .55;
       cursor: not-allowed;
     }
 
-    /* Attendees */
     .attendee-block{
       margin-top: 10px;
       display:flex;
@@ -212,12 +223,26 @@
       margin-bottom: 8px;
     }
     .attendee-title{
-      font-weight: 800;
+      font-weight: 900;
       font-size: 13px;
     }
     .small{
       font-size: 12px;
       color: var(--muted);
+    }
+
+    .center-actions{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .section-title{
+      font-weight: 900;
+      text-align: center;
+      margin: 4px 0 0 0;
+      font-size: 13px;
     }
 
     .spinner{
@@ -243,15 +268,13 @@
         <p class="sub" id="sub">Enter your name to look up your invitation.</p>
 
         <div id="content"></div>
-
         <div class="error" id="error" style="display:none;"></div>
       </div>
 
       <div class="nav" id="nav" style="display:none;">
         <button class="btn-nav ghost" id="backBtn" type="button">Back</button>
         <div style="flex:1;"></div>
-        <button class="btn-nav" id="nextBtn" type="button">Next</button>
-        <button class="btn-nav" id="submitBtn" type="button" style="display:none;">Submit</button>
+        <button class="btn-nav" id="submitBtn" type="button">Submit</button>
         <button class="btn-nav ghost" id="closeBtn" type="button">Close</button>
       </div>
     </div>
@@ -263,15 +286,10 @@
     };
 
     const state = {
-      step: "find", // find | matches | questions | done
+      step: "find",
       matches: [],
       invite: null,
-      responses: {
-        attending: "",
-        transportation: "",
-        phone: "",
-        party: [] // attendee objects
-      },
+      responses: { attending:"", transportation:"", phone:"", party: [] },
       busy: false
     };
 
@@ -284,7 +302,6 @@
     const navEl = $("nav");
 
     const backBtn = $("backBtn");
-    const nextBtn = $("nextBtn");
     const submitBtn = $("submitBtn");
     const closeBtn = $("closeBtn");
 
@@ -292,15 +309,12 @@
 
     function init(){
       backBtn.addEventListener("click", onBack);
-      nextBtn.addEventListener("click", onNext);
       submitBtn.addEventListener("click", onSubmit);
       closeBtn.addEventListener("click", () => closeModal());
-
       renderFind();
     }
 
     function closeModal(){
-      // Keep it simple for v1production: hide overlay
       $("overlay").style.display = "none";
     }
 
@@ -316,33 +330,34 @@
 
     function setBusy(isBusy, label){
       state.busy = isBusy;
-      nextBtn.disabled = isBusy;
       backBtn.disabled = isBusy;
       submitBtn.disabled = isBusy;
       closeBtn.disabled = isBusy;
 
-      // Optional inline spinner label on Next/Submit
       if (isBusy && label){
-        nextBtn.dataset.prev = nextBtn.textContent;
         submitBtn.dataset.prev = submitBtn.textContent;
-        if (nextBtn.style.display !== "none") nextBtn.innerHTML = `<span class="spinner"></span>${label}`;
-        if (submitBtn.style.display !== "none") submitBtn.innerHTML = `<span class="spinner"></span>${label}`;
+        submitBtn.innerHTML = `<span class="spinner"></span>${label}`;
       } else {
-        if (nextBtn.dataset.prev) nextBtn.textContent = nextBtn.dataset.prev;
         if (submitBtn.dataset.prev) submitBtn.textContent = submitBtn.dataset.prev;
       }
     }
 
+    // preflight-safe
     async function post(action, payload){
       const res = await fetch(CONFIG.webAppUrl, {
         method: "POST",
-        headers: { "Content-Type":"application/json" },
+        mode: "cors",
+        cache: "no-store",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action, ...payload })
       });
-      return await res.json();
+
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch { throw new Error("Server did not return JSON. Check web app deployment access."); }
     }
 
-    /* STEP 1: FIND */
     function renderFind(){
       state.step = "find";
       state.matches = [];
@@ -352,14 +367,16 @@
 
       titleEl.textContent = "Find your invite";
       subEl.textContent = "Enter your name to look up your invitation.";
-
       navEl.style.display = "none";
+
       contentEl.innerHTML = `
         <div class="field">
           <div class="label">Full name</div>
           <input id="nameInput" type="text" autocomplete="name" placeholder="Type your name" />
         </div>
-        <button class="btn-nav" type="button" id="findBtn" style="width:100%;">Search</button>
+        <div class="center-actions">
+          <button class="btn-nav" type="button" id="findBtn" style="width:100%;">Search</button>
+        </div>
       `;
 
       const nameInput = $("nameInput");
@@ -389,12 +406,10 @@
         state.matches = data.matches || [];
 
         if (!state.matches.length){
-          setBusy(false);
           return setError("No match found. Please check the spelling and try again.");
         }
 
         if (state.matches.length === 1){
-          // Auto-select single invite
           await doGet(state.matches[0].invite_id);
           return;
         }
@@ -403,18 +418,16 @@
       } catch(err){
         setError(String(err.message || err));
       } finally {
-        setBusy(false);
+        setBusy(false, "");
       }
     }
 
-    /* STEP 2: MULTI MATCH */
     function renderMatches(){
       state.step = "matches";
       setError("");
 
       titleEl.textContent = "Which invite is yours?";
       subEl.textContent = "Select your name from the list.";
-
       navEl.style.display = "none";
 
       contentEl.innerHTML = `
@@ -448,12 +461,11 @@
         if (!data.ok) throw new Error(data.error || "Could not load invite.");
         state.invite = data.invite;
 
-        // Build party model used by UI
         const party = (state.invite.party || []).map((p, i) => ({
-          row_index: p.row_index,                 // important for exact row updates
+          row_index: p.row_index,
           attendee_id: p.attendee_id || String(i + 1),
-          full_name: p.full_name || "",           // existing full name from sheet
-          attending: p.attending || "",           // optional per-attendee, but we also apply overall
+          full_name: p.full_name || "",
+          status: p.status || "",
           transportation: p.transportation || "",
           phone: p.phone || ""
         }));
@@ -464,29 +476,23 @@
       } catch(err){
         setError(String(err.message || err));
       } finally {
-        setBusy(false);
+        setBusy(false, "");
       }
     }
 
-    /* STEP 3: QUESTIONS */
     function renderQuestions(){
       state.step = "questions";
       setError("");
 
       titleEl.textContent = "RSVP";
-      subEl.textContent = "Please answer a few quick questions.";
+      subEl.textContent = "Phone, attendance, transportation, and attendee names are all on this screen.";
 
       navEl.style.display = "flex";
       backBtn.style.display = "inline-flex";
-      nextBtn.style.display = "inline-flex";
-      submitBtn.style.display = "none";
-
-      // If you want step-by-step pages, keep next/back logic.
-      // For v1production, we’ll keep a single screen and switch Next -> Submit.
-      nextBtn.style.display = "none";
       submitBtn.style.display = "inline-flex";
 
       contentEl.innerHTML = `
+        <div class="section-title">Contact</div>
         <div class="field">
           <div class="label">Phone number (optional)</div>
           <input id="phoneInput" type="tel" inputmode="tel" placeholder="e.g. 778-123-4567" />
@@ -494,9 +500,10 @@
 
         <div class="divider"></div>
 
+        <div class="section-title">Attendance</div>
         <div class="field">
           <div class="label">Are you coming?</div>
-          <div class="choice-row" id="attendingChoices">
+          <div class="choice-row">
             <button type="button" class="btn-choice" data-q="attending" data-v="Yes">Yes</button>
             <button type="button" class="btn-choice" data-q="attending" data-v="No">No</button>
           </div>
@@ -504,46 +511,43 @@
 
         <div class="field">
           <div class="label">Transportation</div>
-          <div class="choice-row" id="transportChoices">
+          <div class="choice-row">
             <button type="button" class="btn-choice" data-q="transportation" data-v="Yes">Yes</button>
             <button type="button" class="btn-choice" data-q="transportation" data-v="No">No</button>
           </div>
-          <div class="small" style="margin-top:6px;">Select “Yes” if you need transportation arranged.</div>
+          <div class="small" style="margin-top:6px; text-align:center;">
+            Select “Yes” if you need transportation arranged.
+          </div>
         </div>
 
         <div class="divider"></div>
 
-        <div class="field">
-          <div class="label">Attendees</div>
-          <div class="small">Confirm the full names below.</div>
+        <div class="section-title">Attendees</div>
+        <div class="small" style="text-align:center;">Confirm the full names below.</div>
 
-          <div class="attendee-block" id="attendeeBlock">
-            ${(state.responses.party || []).map((p, idx) => `
-              <div class="attendee-row" data-idx="${idx}">
-                <div class="attendee-head">
-                  <div class="attendee-title">Attendee ${idx + 1}</div>
-                  ${p.attendee_id ? `<div class="small">ID: ${escapeHtml(p.attendee_id)}</div>` : `<div class="small"></div>`}
-                </div>
-                <div class="field" style="margin:0;">
-                  <div class="label">Full name</div>
-                  <input type="text" class="attendeeNameInput" value="${escapeAttr(p.full_name || "")}" placeholder="Full name" />
-                </div>
+        <div class="attendee-block">
+          ${(state.responses.party || []).map((p, idx) => `
+            <div class="attendee-row" data-idx="${idx}">
+              <div class="attendee-head">
+                <div class="attendee-title">Attendee ${idx + 1}</div>
+                <div class="small">ID: ${escapeHtml(p.attendee_id || String(idx+1))}</div>
               </div>
-            `).join("")}
-          </div>
+              <div class="field" style="margin:0;">
+                <div class="label">Full name</div>
+                <input type="text" class="attendeeNameInput" value="${escapeAttr(p.full_name || "")}" placeholder="Full name" />
+              </div>
+            </div>
+          `).join("")}
         </div>
       `;
 
-      // Prefill phone from attendee 1 if present
       const phoneInput = $("phoneInput");
-      const firstPhone = (state.responses.party && state.responses.party[0] && state.responses.party[0].phone) ? state.responses.party[0].phone : "";
+      const firstPhone = (state.responses.party[0] && state.responses.party[0].phone) ? state.responses.party[0].phone : "";
       phoneInput.value = formatPhoneLoose(firstPhone || state.responses.phone || "");
 
-      // Wire up yes/no buttons with distinct class and hover/selected states
       wireChoiceGroup("attending");
       wireChoiceGroup("transportation");
 
-      // Restore selected state if already chosen
       if (state.responses.attending) setChoiceSelected("attending", state.responses.attending);
       if (state.responses.transportation) setChoiceSelected("transportation", state.responses.transportation);
     }
@@ -554,9 +558,6 @@
           const v = btn.getAttribute("data-v");
           state.responses[questionKey] = v;
           setChoiceSelected(questionKey, v);
-
-          // If decline, you may want to lock out further steps immediately
-          // Keeping your v1 behavior: decline stops flow on submit.
         });
       });
     }
@@ -568,28 +569,19 @@
     }
 
     function onBack(){
-      // In single-screen questions mode, back goes to find
       renderFind();
-    }
-
-    function onNext(){
-      // Not used in this single-screen layout
     }
 
     async function onSubmit(){
       setError("");
 
-      // Collect current UI values
       const phoneInput = $("phoneInput");
       state.responses.phone = formatPhoneLoose(phoneInput.value || "");
 
-      // Must choose attending
       if (!state.responses.attending){
         return setError("Please answer “Are you coming?”");
       }
 
-      // If they are not coming, stop flow (as per your v1 behavior)
-      // but still submit the decline state + names if provided
       const attendeeRows = Array.from(contentEl.querySelectorAll(".attendee-row"));
       const party = attendeeRows.map((row) => {
         const idx = Number(row.getAttribute("data-idx"));
@@ -599,15 +591,11 @@
         return {
           row_index: existing.row_index,
           attendee_id: existing.attendee_id,
-          full_name: (input && input.value ? input.value.trim() : ""), // IMPORTANT: captures attendee 1 as well
-          attending: state.responses.attending,
-          transportation: state.responses.transportation,
+          full_name: (input && input.value ? input.value.trim() : ""),
           phone: state.responses.phone
         };
       });
 
-      // Validate full names (optional strictness)
-      // If you want attendee 1 required:
       if (!party[0] || !party[0].full_name){
         return setError("Please confirm the full name for Attendee 1.");
       }
@@ -627,12 +615,11 @@
 
         const data = await post("submit", payload);
         if (!data.ok) throw new Error(data.error || "Submit failed.");
-
         renderDone();
       } catch(err){
         setError(String(err.message || err));
       } finally {
-        setBusy(false);
+        setBusy(false, "");
       }
     }
 
@@ -645,12 +632,11 @@
 
       navEl.style.display = "flex";
       backBtn.style.display = "none";
-      nextBtn.style.display = "none";
       submitBtn.style.display = "none";
 
       contentEl.innerHTML = `
-        <div class="small">
-          If you need to make changes, you can refresh and submit again.
+        <div class="small" style="text-align:center;">
+          If you need to make changes, refresh and submit again.
         </div>
       `;
     }
@@ -667,27 +653,18 @@
       return escapeHtml(s).replace(/"/g,"&quot;");
     }
 
-    // Basic phone formatting, keeps your PH/NA looseness without breaking input
     function formatPhoneLoose(raw){
       const s = String(raw || "").trim();
       if (!s) return "";
-
-      // Keep leading + if present
       const hasPlus = s.startsWith("+");
       const digits = s.replace(/[^\d]/g, "");
-
       if (hasPlus) return "+" + digits;
-
-      // North America 10 digits => 778-123-4567
       if (digits.length === 10){
         return digits.slice(0,3) + "-" + digits.slice(3,6) + "-" + digits.slice(6);
       }
-
-      // PH common 11 digits starting with 0 => keep as 0XXXXXXXXXX
       if (digits.length === 11 && digits.startsWith("0")){
         return digits;
       }
-
       return s;
     }
   </script>
