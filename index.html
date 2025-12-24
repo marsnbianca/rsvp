@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mars & Bianca</title>
+  <title>RSVP</title>
   <style>
     :root{
       --bg:transparent;
@@ -16,7 +16,6 @@
       --btn:#141418;
       --btnText:#ffffff;
 
-      /* Pills (Yes/No) */
       --pillBg:#eef1ff;
       --pillBorder:#cfd6ff;
       --pillHover:#e3e8ff;
@@ -32,7 +31,6 @@
       color:var(--text);
     }
 
-    /* Overlay */
     #overlay{
       position:fixed;
       inset:0;
@@ -40,7 +38,6 @@
       z-index: 9998;
     }
 
-    /* Modal centered, responsive, Readymag-friendly */
     #modal{
       position: fixed;
       left: 50%;
@@ -92,13 +89,6 @@
       text-align:center;
     }
 
-    label{
-      display:block;
-      font-size:13px;
-      color:var(--muted);
-      text-align:center;
-    }
-
     input, select, textarea{
       width:100%;
       max-width:360px;
@@ -139,7 +129,6 @@
       text-align:center;
     }
 
-    /* Action buttons (Back / Next / Close / Submit) */
     .btns{
       display:flex;
       gap:12px;
@@ -164,9 +153,7 @@
       min-width: 140px;
     }
 
-    button.primary:hover{
-      background:#2a2a30;
-    }
+    button.primary:hover{ background:#2a2a30; }
 
     button.secondary{
       background:#ffffff;
@@ -185,7 +172,6 @@
       cursor:not-allowed;
     }
 
-    /* Yes/No pills (distinct from nav buttons) */
     .pillRow{
       display:flex;
       gap:10px;
@@ -215,7 +201,6 @@
       border-color: var(--pillActiveBorder);
     }
 
-    /* Name selection buttons (verification list) */
     .pickList{
       display:flex;
       flex-direction:column;
@@ -245,7 +230,6 @@
       border-color:#c9cada;
     }
 
-    /* Loading */
     .loading{
       display:flex;
       align-items:center;
@@ -272,7 +256,6 @@
       40%{transform:scale(1.1); opacity:1}
     }
 
-    /* Main close bar button (hidden on Thanks / Locked / Declined) */
     #closeWrap{
       padding:12px 18px 16px;
       border-top:1px solid var(--line);
@@ -292,7 +275,6 @@
       border-color:#c9cada;
     }
 
-    /* Mobile: full-width action buttons */
     @media (max-width: 420px){
       button.primary,
       button.secondary{
@@ -339,11 +321,11 @@
     matches: [],
     invite: null,
 
-    attending: null,          // "yes" | "no"
+    attending: null,
     attendingCount: 1,
     attendeeNames: [],
 
-    transportation: null,     // "Yes" | "No"
+    transportation: null,
     phoneDigits: "",
     notes: ""
   };
@@ -389,7 +371,6 @@
     return div;
   }
 
-  // CORS-safe request (no preflight)
   async function api(action, payload) {
     const res = await fetch(CONFIG.webAppUrl, {
       method: "POST",
@@ -410,8 +391,12 @@
     state.attendeeNames = arr;
   }
 
+  function digits11_(s) {
+    return String(s || "").replace(/[^\d]/g, "").slice(0, 11);
+  }
+
   function formatPH09_(digits) {
-    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11); // hard cap at 11
+    const d = digits11_(digits);
     const p1 = d.slice(0, 4);
     const p2 = d.slice(4, 7);
     const p3 = d.slice(7, 11);
@@ -421,15 +406,16 @@
   }
 
   function isValidPH09_(digits) {
-    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
+    const d = digits11_(digits);
     return d.length === 11 && d.startsWith("09");
   }
 
-  // ✅ Returns exactly what the guest sees, if valid. Otherwise "".
-  function visiblePHPhone_(digits09) {
-    const d = (digits09 || "").replace(/[^\d]/g, "").slice(0, 11);
-    if (d.length !== 11 || !d.startsWith("09")) return "";
-    return formatPH09_(d);
+  // ✅ Returns "" if empty, "invalid" if tried but wrong, or the final visible string if valid
+  function phoneStatus_(digits) {
+    const d = digits11_(digits);
+    if (!d) return { ok: false, reason: "empty", visible: "" };
+    if (d.length !== 11 || !d.startsWith("09")) return { ok: false, reason: "invalid", visible: formatPH09_(d) };
+    return { ok: true, reason: "ok", visible: formatPH09_(d) };
   }
 
   function render() {
@@ -685,7 +671,6 @@
         return render();
       }
 
-      // Decline: submit immediately, stop flow
       if (state.attending === "no") {
         state.loading = true;
         render();
@@ -720,7 +705,6 @@
         }
       }
 
-      // Single invite YES: skip to transpo
       if (maxSeats === 1) {
         state.attendingCount = 1;
         state.attendeeNames = [inviteName];
@@ -728,7 +712,6 @@
         return render();
       }
 
-      // Party YES validation
       const cleaned = (state.attendeeNames || [])
         .slice(0, state.attendingCount)
         .map(n => (n || "").trim());
@@ -806,13 +789,41 @@
     input.inputMode = "numeric";
     input.autocomplete = "tel";
     input.placeholder = "09XX XXX XXXX";
+    input.maxLength = 13; // includes spaces in the formatted display
     input.value = formatPH09_(state.phoneDigits);
 
+    const helper = document.createElement("div");
+    helper.className = "muted";
+    helper.textContent = "Format: 09XX XXX XXXX";
+    wrap.appendChild(helper);
+
+    function liveValidate() {
+      const s = phoneStatus_(state.phoneDigits);
+      if (s.ok) {
+        input.setCustomValidity("");
+        return;
+      }
+      if (s.reason === "empty") {
+        input.setCustomValidity("");
+        return;
+      }
+      input.setCustomValidity("invalid");
+    }
+
     input.oninput = (e) => {
-      // ✅ Always keep only the first 11 digits, so excess never sticks
-      const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
+      const digits = digits11_(e.target.value);
       state.phoneDigits = digits;
       e.target.value = formatPH09_(digits);
+      state.error = "";
+      liveValidate();
+    };
+
+    input.onblur = () => {
+      const s = phoneStatus_(state.phoneDigits);
+      if (!s.ok && s.reason === "invalid") {
+        state.error = "Phone number invalid. Please use 11 digits starting with 09.";
+        render();
+      }
     };
 
     wrap.appendChild(input);
@@ -832,10 +843,18 @@
     next.textContent = "Next";
     next.onclick = () => {
       state.error = "";
-      if (!isValidPH09_(state.phoneDigits)) {
-        state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+
+      const s = phoneStatus_(state.phoneDigits);
+
+      if (!s.ok) {
+        if (s.reason === "empty") {
+          state.error = "Phone number is required.";
+        } else {
+          state.error = "Phone number invalid. Please use 11 digits starting with 09.";
+        }
         return render();
       }
+
       state.step = "notes";
       render();
     };
@@ -907,8 +926,12 @@
       return render();
     }
 
-    if (!isValidPH09_(state.phoneDigits)) {
-      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+    // ✅ Always re-check phone right before submit, and bounce back to phone with a clear error
+    const phoneCheck = phoneStatus_(state.phoneDigits);
+    if (!phoneCheck.ok) {
+      state.error = phoneCheck.reason === "empty"
+        ? "Phone number is required."
+        : "Phone number invalid. Please use 11 digits starting with 09.";
       state.step = "phone";
       return render();
     }
@@ -935,15 +958,12 @@
       }
     }
 
-    // ✅ Send exactly what is visible to the guest
-    const visiblePhone = visiblePHPhone_(state.phoneDigits);
-
     const payload = {
       invite_id: state.invite.invite_id,
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: visiblePhone,                 // ✅ "09XX XXX XXXX"
+      phone: phoneCheck.visible, // ✅ "09XX XXX XXXX" exactly as shown
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
@@ -961,7 +981,16 @@
           state.step = "locked";
           return render();
         }
-        throw new Error(data?.error || "Submit failed.");
+
+        // ✅ If server complains about phone, show it on phone screen
+        const msg = String(data?.error || "Submit failed.");
+        if (msg.toLowerCase().includes("phone")) {
+          state.error = msg;
+          state.step = "phone";
+          return render();
+        }
+
+        throw new Error(msg);
       }
 
       state.step = "thanks";
