@@ -4,11 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>RSVP</title>
-
   <style>
     :root{
-      --overlay: rgba(0,0,0,.40);
-
+      --bg:transparent;
       --card:#f6f7fb;
       --text:#141418;
       --muted:#5a5a66;
@@ -17,656 +15,1077 @@
 
       --btn:#141418;
       --btnText:#ffffff;
-      --btnHover:#2a2a2f;
 
-      --choiceBg:#ffffff;
-      --choiceText:#141418;
-      --choiceLine:#cfd0da;
-      --choiceHover:#f0f1f7;
-      --choiceSelectedBg:#141418;
-      --choiceSelectedText:#ffffff;
-
-      --nameBg:#ffffff;
-      --nameHover:#f0f1f7;
-
-      --shadow: 0 14px 40px rgba(0,0,0,.18);
-      --radius: 18px;
+      /* Pills (Yes/No) */
+      --pillBg:#eef1ff;
+      --pillBorder:#cfd6ff;
+      --pillHover:#e3e8ff;
+      --pillActive:#d7dfff;
+      --pillActiveBorder:#b9c6ff;
     }
 
-    *{ box-sizing:border-box; }
-    html, body { height: 100%; }
+    html,body{height:100%}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color: var(--text);
-      background: transparent;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:transparent;
+      color:var(--text);
     }
 
-    .overlay{
+    /* Overlay */
+    #overlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.60);
+      z-index: 9998;
+    }
+
+    /* Modal centered, responsive, Readymag-friendly */
+    #modal{
       position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      background: var(--overlay);
-    }
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
 
-    /* KEY FIX: modal becomes a column layout with a scrollable content area */
-    .modal{
-      width: min(560px, 100%);
+      z-index: 9999;
+      width:min(420px, calc(100vw - 32px));
       max-height: calc(100vh - 32px);
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,.35);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      overflow: auto;
+
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      text-align:center;
     }
 
-    .modal-inner{
-      padding: 18px;
-      overflow: auto;         /* scroll inside modal */
-      -webkit-overflow-scrolling: touch;
-      flex: 1;                /* take remaining height above nav */
+    #header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      text-align:center;
     }
 
-    .title{
-      font-size: 20px;
-      font-weight: 800;
-      margin: 0 0 6px 0;
-      text-align: center;
-      letter-spacing: .2px;
+    #title{
+      margin:0;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.2px;
     }
 
-    .sub{
-      margin: 0 0 14px 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-      text-align: center;
+    #subtitle{
+      margin:8px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
     }
 
-    .divider{
-      height: 1px;
-      background: var(--line);
-      margin: 14px 0;
+    #content{
+      padding:16px 18px 18px;
+      text-align:center;
     }
 
-    .field{
+    .row{
       display:flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 10px 0;
-    }
-    .label{
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .6px;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
+      text-align:center;
     }
 
-    input[type="text"], input[type="tel"]{
-      width: 100%;
-      padding: 12px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: #fff;
-      font-size: 14px;
-      outline: none;
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      text-align:center;
     }
-    input[type="text"]:focus, input[type="tel"]:focus{
-      border-color: #b9bbca;
+
+    input, select, textarea{
+      width:100%;
+      max-width:360px;
+      box-sizing:border-box;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--text);
+      padding:12px 12px;
+      outline:none;
+      font-size:14px;
+      text-align:center;
+    }
+
+    textarea{
+      min-height:92px;
+      resize:vertical;
+      text-align:center;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      text-align:center;
+      max-width:360px;
     }
 
     .error{
-      color: var(--err);
-      font-size: 12px;
-      margin-top: 8px;
-      text-align: center;
+      width:100%;
+      max-width:360px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(198,40,40,.35);
+      background: rgba(198,40,40,.08);
+      color:var(--err);
+      font-size:13px;
+      text-align:center;
+    }
+
+    /* Action buttons (Back / Next / Close / Submit) */
+    .btns{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin-top:16px;
+      flex-wrap:wrap;
     }
 
     button{
-      border: none;
-      cursor: pointer;
-      font: inherit;
-      -webkit-tap-highlight-color: transparent;
+      border:0;
+      border-radius:12px;
+      padding:11px 14px;
+      font-weight:650;
+      cursor:pointer;
+      font-size:14px;
     }
 
-    .btn-name{
-      width: 100%;
-      text-align: left;
-      padding: 12px 12px;
-      border-radius: 12px;
-      background: var(--nameBg);
-      border: 1px solid var(--line);
-      margin: 8px 0 0 0;
-      transition: background .15s ease, transform .02s ease;
-    }
-    .btn-name:hover{ background: var(--nameHover); }
-    .btn-name:active{ transform: translateY(1px); }
-
-    .choice-row{
-      display:flex;
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .btn-choice{
-      flex: 1;
-      padding: 12px 12px;
-      border-radius: 12px;
-      background: var(--choiceBg);
-      color: var(--choiceText);
-      border: 1px solid var(--choiceLine);
-      transition: background .15s ease, color .15s ease, transform .02s ease;
-      text-align: center;
-      font-weight: 800;
-    }
-    .btn-choice:hover{ background: var(--choiceHover); }
-    .btn-choice.is-selected{
-      background: var(--choiceSelectedBg);
-      color: var(--choiceSelectedText);
-      border-color: var(--choiceSelectedBg);
-    }
-    .btn-choice:active{ transform: translateY(1px); }
-
-    /* KEY FIX: nav sticks to bottom (always visible) */
-    .nav{
-      display:flex;
-      gap: 10px;
-      padding: 14px 18px;
-      border-top: 1px solid var(--line);
-      background: rgba(255,255,255,.55);
-      align-items: center;
-      flex: 0 0 auto;
-    }
-    .btn-nav{
-      padding: 12px 14px;
-      border-radius: 12px;
+    button.primary{
       background: var(--btn);
       color: var(--btnText);
-      font-weight: 900;
-      transition: background .15s ease, transform .02s ease, opacity .15s ease;
-      min-width: 110px;
+      border: none;
+      min-width: 140px;
     }
-    .btn-nav:hover{ background: var(--btnHover); }
-    .btn-nav:active{ transform: translateY(1px); }
-    .btn-nav.ghost{
-      background: transparent;
+
+    /* Visible hover on dark buttons */
+    button.primary:hover{
+      background:#2a2a30;
+    }
+
+    button.secondary{
+      background:#ffffff;
+      border: 1.5px solid var(--line);
       color: var(--text);
-      border: 1px solid var(--line);
-      font-weight: 900;
-    }
-    .btn-nav.ghost:hover{ background: #eef0f8; }
-    .btn-nav:disabled{
-      opacity: .55;
-      cursor: not-allowed;
+      min-width: 140px;
     }
 
-    .attendee-block{
-      margin-top: 10px;
+    button.secondary:hover{
+      background:#f0f1f6;
+      border-color:#c9cada;
+    }
+
+    button:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    /* Yes/No pills (distinct from nav buttons) */
+    .pillRow{
       display:flex;
-      flex-direction: column;
-      gap: 10px;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top:4px;
     }
-    .attendee-row{
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
+
+    .pill{
+      background: var(--pillBg);
+      border: 1.5px solid var(--pillBorder);
+      color: var(--text);
+      min-width:150px;
+      border-radius:999px; /* more pill-like */
+      padding:11px 16px;
+      font-weight:700;
+      transition: background .08s ease, border-color .08s ease;
     }
-    .attendee-head{
+
+    .pill:hover{
+      background: var(--pillHover);
+      border-color: var(--pillActiveBorder);
+    }
+
+    .pill.active{
+      background: var(--pillActive);
+      border-color: var(--pillActiveBorder);
+    }
+
+    /* Name selection buttons (verification list) */
+    .pickList{
       display:flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .attendee-title{
-      font-weight: 900;
-      font-size: 13px;
-    }
-    .small{
-      font-size: 12px;
-      color: var(--muted);
+      flex-direction:column;
+      gap:10px;
+      width:100%;
+      align-items:stretch;
     }
 
-    .center-actions{
+    button.pickBtn{
+      width:100%;
+      max-width:360px;
+      margin:0 auto;
+      padding:14px 16px;
+
+      background:#ffffff;
+      border: 1.5px solid var(--line);
+      border-radius:14px;
+
+      font-size:15px;
+      font-weight:650;
+      color:var(--text);
+      text-align:center;
+    }
+
+    button.pickBtn:hover{
+      background:#f0f1f6;
+      border-color:#c9cada;
+    }
+
+    /* Loading */
+    .loading{
       display:flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:13px;
+      margin-top:4px;
     }
 
-    .section-title{
-      font-weight: 900;
-      text-align: center;
-      margin: 4px 0 0 0;
-      font-size: 13px;
+    .dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:var(--muted);
+      animation:b 1s infinite ease-in-out;
     }
 
-    .spinner{
-      display:inline-block;
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      border: 2px solid rgba(0,0,0,.18);
-      border-top-color: rgba(0,0,0,.55);
-      animation: spin 700ms linear infinite;
-      vertical-align: -3px;
-      margin-right: 8px;
+    .dot:nth-child(2){animation-delay:.15s}
+    .dot:nth-child(3){animation-delay:.3s}
+
+    @keyframes b{
+      0%,80%,100%{transform:scale(.7); opacity:.6}
+      40%{transform:scale(1.1); opacity:1}
     }
-    @keyframes spin{ to{ transform: rotate(360deg);} }
+
+    /* Main close bar button (hidden on Thanks / Locked / Declined) */
+    #closeWrap{
+      padding:12px 18px 16px;
+      border-top:1px solid var(--line);
+      display:none;
+      justify-content:center;
+    }
+
+    #closeBtn{
+      background:#ffffff;
+      border:1.5px solid var(--line);
+      color:var(--text);
+      min-width:180px;
+    }
+
+    #closeBtn:hover{
+      background:#f0f1f6;
+      border-color:#c9cada;
+    }
+
+    /* Mobile: full-width action buttons */
+    @media (max-width: 420px){
+      button.primary,
+      button.secondary{
+        width: 100%;
+        max-width: 360px;
+      }
+
+      .btns{
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
   </style>
 </head>
 
 <body>
-  <div class="overlay" id="overlay" aria-modal="true" role="dialog">
-    <div class="modal">
-      <div class="modal-inner">
-        <h1 class="title" id="title">Find your invite</h1>
-        <p class="sub" id="sub">Enter your name to look up your invitation.</p>
+  <div id="overlay" aria-hidden="true"></div>
 
-        <div id="content"></div>
-        <div class="error" id="error" style="display:none;"></div>
-      </div>
+  <div id="modal" role="dialog" aria-modal="true">
+    <div id="header">
+      <h1 id="title">RSVP</h1>
+      <p id="subtitle"></p>
+    </div>
 
-      <div class="nav" id="nav" style="display:none;">
-        <button class="btn-nav ghost" id="backBtn" type="button">Back</button>
-        <div style="flex:1;"></div>
-        <button class="btn-nav" id="submitBtn" type="button">Submit</button>
-        <button class="btn-nav ghost" id="closeBtn" type="button">Close</button>
-      </div>
+    <div id="content"></div>
+
+    <div id="closeWrap">
+      <button id="closeBtn">Close</button>
     </div>
   </div>
 
-  <script>
-    const CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec"
-    };
+<script>
+  const CONFIG = {
+    webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
+    maxSeatsCap: 4
+  };
 
-    const state = {
-      step: "find",
-      matches: [],
-      invite: null,
-      responses: { attending:"", transportation:"", phone:"", party: [] },
-      busy: false
-    };
+  const state = {
+    step: "find",
+    loading: false,
+    error: "",
+    contactLine: "",
+    nameQuery: "",
+    matches: [],
+    invite: null,
 
-    const $ = (id) => document.getElementById(id);
+    attending: null,          // "yes" | "no"
+    attendingCount: 1,
+    attendeeNames: [],
 
-    const titleEl = $("title");
-    const subEl = $("sub");
-    const contentEl = $("content");
-    const errorEl = $("error");
-    const navEl = $("nav");
+    transportation: null,     // "Yes" | "No"
+    phoneDigits: "",
+    notes: ""
+  };
 
-    const backBtn = $("backBtn");
-    const submitBtn = $("submitBtn");
-    const closeBtn = $("closeBtn");
+  const elTitle = document.getElementById("title");
+  const elSubtitle = document.getElementById("subtitle");
+  const elContent = document.getElementById("content");
+  const elCloseWrap = document.getElementById("closeWrap");
+  const elCloseBtn = document.getElementById("closeBtn");
+  elCloseBtn.addEventListener("click", closeModal);
 
-    init();
+  function setHeader(title, subtitle) {
+    elTitle.textContent = title;
+    elSubtitle.textContent = subtitle || "";
+  }
 
-    function init(){
-      backBtn.addEventListener("click", onBack);
-      submitBtn.addEventListener("click", onSubmit);
-      closeBtn.addEventListener("click", () => closeModal());
-      renderFind();
-    }
+  function errorEl(msg) {
+    const err = document.createElement("div");
+    err.className = "error";
+    err.textContent = msg;
+    return err;
+  }
 
-    function closeModal(){
-      $("overlay").style.display = "none";
-    }
+  function pill(text, active, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pill" + (active ? " active" : "");
+    b.textContent = text;
+    b.addEventListener("click", onClick);
+    return b;
+  }
 
-    function setError(msg){
-      if (!msg){
-        errorEl.style.display = "none";
-        errorEl.textContent = "";
-        return;
+  function clamp(n, a, b) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return a;
+    return Math.min(Math.max(x, a), b);
+  }
+
+  function loadingRow() {
+    const div = document.createElement("div");
+    div.className = "loading";
+    div.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Loading…</span>`;
+    return div;
+  }
+
+  // CORS-safe request (no preflight)
+  async function api(action, payload) {
+    const res = await fetch(CONFIG.webAppUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, ...(payload || {}) })
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch (e) { return { ok: false, error: "Invalid server response.", raw: text }; }
+  }
+
+  function syncAttendeeNames_(maxSeats) {
+    const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+    state.attendingCount = cnt;
+
+    const arr = Array.isArray(state.attendeeNames) ? state.attendeeNames.slice(0, cnt) : [];
+    while (arr.length < cnt) arr.push("");
+    state.attendeeNames = arr;
+  }
+
+  function formatPH09_(digits) {
+    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
+    const p1 = d.slice(0, 4);
+    const p2 = d.slice(4, 7);
+    const p3 = d.slice(7, 11);
+    if (d.length <= 4) return p1;
+    if (d.length <= 7) return `${p1} ${p2}`;
+    return `${p1} ${p2} ${p3}`;
+  }
+
+  function isValidPH09_(digits) {
+    const d = (digits || "").replace(/[^\d]/g, "");
+    return d.length === 11 && d.startsWith("09");
+  }
+
+  function toE164From09_(digits09) {
+    const d = (digits09 || "").replace(/[^\d]/g, "");
+    if (d.length !== 11 || !d.startsWith("09")) return "";
+    return "+63" + d.slice(1);
+  }
+
+  function render() {
+    elContent.innerHTML = "";
+
+    if (state.step === "find") return renderFind();
+    if (state.step === "pick") return renderPick();
+    if (state.step === "coming") return renderComing();
+    if (state.step === "transpo") return renderTranspo();
+    if (state.step === "phone") return renderPhone();
+    if (state.step === "notes") return renderNotes();
+    if (state.step === "locked") return renderLocked();
+    if (state.step === "thanks") return renderThanks();
+    if (state.step === "declined") return renderDeclined();
+
+    state.step = "find";
+    renderFind();
+  }
+
+  function renderFind() {
+    setHeader("Find your invite", "Type the name on the invitation.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Full name";
+    input.value = state.nameQuery;
+    input.addEventListener("input", (e) => state.nameQuery = e.target.value);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") onFind(); });
+    wrap.appendChild(input);
+
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const btn = document.createElement("button");
+    btn.className = "primary";
+    btn.type = "button";
+    btn.textContent = "Find invite";
+    btn.disabled = state.loading;
+    btn.onclick = onFind;
+
+    btns.appendChild(btn);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+    setTimeout(() => input.focus(), 0);
+  }
+
+  async function onFind() {
+    state.error = "";
+    const name = (state.nameQuery || "").trim();
+    if (!name) { state.error = "Please type a name first."; return render(); }
+
+    state.loading = true;
+    render();
+
+    try {
+      const data = await api("find", { name });
+      state.loading = false;
+
+      if (!data || !data.ok) throw new Error(data?.error || "Search failed.");
+      state.contactLine = data.contact_line || "";
+      state.matches = Array.isArray(data.matches) ? data.matches : [];
+
+      if (state.matches.length === 0) {
+        state.error = "No match found. Try a different spelling.";
+        return render();
       }
-      errorEl.style.display = "block";
-      errorEl.textContent = msg;
+
+      state.step = "pick";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      render();
     }
+  }
 
-    function setBusy(isBusy, label){
-      state.busy = isBusy;
-      backBtn.disabled = isBusy;
-      submitBtn.disabled = isBusy;
-      closeBtn.disabled = isBusy;
+  function renderPick() {
+    setHeader("Verify your name", "Tap your name to continue.");
+    elCloseWrap.style.display = "none";
 
-      if (isBusy && label){
-        submitBtn.dataset.prev = submitBtn.textContent;
-        submitBtn.innerHTML = `<span class="spinner"></span>${label}`;
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const list = document.createElement("div");
+    list.className = "pickList";
+
+    state.matches.forEach((m) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pickBtn";
+      btn.textContent = m.invite_name || "Unnamed guest";
+      btn.onclick = () => onPick(m);
+      list.appendChild(btn);
+    });
+
+    wrap.appendChild(list);
+
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.type = "button";
+    back.textContent = "Back";
+    back.disabled = state.loading;
+    back.onclick = () => { state.error = ""; state.step = "find"; render(); };
+
+    btns.appendChild(back);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  async function onPick(m) {
+    state.error = "";
+    state.loading = true;
+    render();
+
+    try {
+      const data = await api("get", { invite_id: m.invite_id });
+      state.loading = false;
+
+      if (!data || !data.ok) throw new Error(data?.error || "Could not load invite.");
+
+      state.contactLine = data.contact_line || state.contactLine || "";
+      state.invite = data.invite || null;
+
+      if (!state.invite) throw new Error("Missing invite data.");
+
+      if (state.invite.locked) {
+        state.step = "locked";
+        return render();
+      }
+
+      state.attending = null;
+      state.attendingCount = 1;
+      state.attendeeNames = [];
+      state.transportation = null;
+      state.phoneDigits = "";
+      state.notes = "";
+
+      state.step = "coming";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      render();
+    }
+  }
+
+  function renderComing() {
+    const inviteName = state.invite?.invite_name || "Guest";
+    const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
+
+    setHeader("RSVP", `${inviteName}, are you coming?`);
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const pills = document.createElement("div");
+    pills.className = "pillRow";
+
+    pills.appendChild(pill("Yes", state.attending === "yes", () => {
+      state.attending = "yes";
+
+      if (maxSeats === 1) {
+        state.attendingCount = 1;
+        state.attendeeNames = [inviteName]; // UI convenience
       } else {
-        if (submitBtn.dataset.prev) submitBtn.textContent = submitBtn.dataset.prev;
+        state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
+        syncAttendeeNames_(maxSeats);
+      }
+
+      state.error = "";
+      render();
+    }));
+
+    pills.appendChild(pill("No", state.attending === "no", () => {
+      state.attending = "no";
+      state.attendingCount = 0;
+      state.attendeeNames = [];
+      state.error = "";
+      render();
+    }));
+
+    wrap.appendChild(pills);
+
+    if (state.attending === "yes" && maxSeats > 1) {
+      const select = document.createElement("select");
+      for (let i = 1; i <= maxSeats; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `${i}`;
+        if (i === Number(state.attendingCount || 1)) opt.selected = true;
+        select.appendChild(opt);
+      }
+      select.onchange = (e) => {
+        state.attendingCount = Number(e.target.value);
+        syncAttendeeNames_(maxSeats);
+        render();
+      };
+      wrap.appendChild(select);
+
+      syncAttendeeNames_(maxSeats);
+
+      const note = document.createElement("div");
+      note.className = "muted";
+      note.textContent = "Please enter the full name of each attendee.";
+      wrap.appendChild(note);
+
+      for (let i = 0; i < state.attendingCount; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = `Attendee ${i + 1} full name`;
+        input.value = state.attendeeNames[i] || "";
+        input.oninput = (e) => { state.attendeeNames[i] = e.target.value; };
+        wrap.appendChild(input);
       }
     }
 
-    // preflight-safe
-    async function post(action, payload){
-      const res = await fetch(CONFIG.webAppUrl, {
-        method: "POST",
-        mode: "cors",
-        cache: "no-store",
-        redirect: "follow",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action, ...payload })
-      });
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
 
-      const text = await res.text();
-      try { return JSON.parse(text); }
-      catch { throw new Error("Server did not return JSON. Check web app deployment access."); }
-    }
+    const btns = document.createElement("div");
+    btns.className = "btns";
 
-    function renderFind(){
-      state.step = "find";
-      state.matches = [];
-      state.invite = null;
-      state.responses = { attending:"", transportation:"", phone:"", party: [] };
-      setError("");
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error = ""; state.step = "pick"; render(); };
 
-      titleEl.textContent = "Find your invite";
-      subEl.textContent = "Enter your name to look up your invitation.";
-      navEl.style.display = "none";
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
 
-      contentEl.innerHTML = `
-        <div class="field">
-          <div class="label">Full name</div>
-          <input id="nameInput" type="text" autocomplete="name" placeholder="Type your name" />
-        </div>
-        <div class="center-actions">
-          <button class="btn-nav" type="button" id="findBtn" style="width:100%;">Search</button>
-        </div>
-      `;
+    next.onclick = async () => {
+      state.error = "";
 
-      const nameInput = $("nameInput");
-      const findBtn = $("findBtn");
-
-      findBtn.addEventListener("click", async () => {
-        const q = (nameInput.value || "").trim();
-        if (!q) return setError("Please enter your name.");
-        await doFind(q);
-      });
-
-      nameInput.addEventListener("keydown", async (e) => {
-        if (e.key === "Enter"){
-          const q = (nameInput.value || "").trim();
-          if (!q) return setError("Please enter your name.");
-          await doFind(q);
-        }
-      });
-    }
-
-    async function doFind(query){
-      setError("");
-      setBusy(true, "Searching");
-      try{
-        const data = await post("find", { query });
-        if (!data.ok) throw new Error(data.error || "Search failed.");
-        state.matches = data.matches || [];
-
-        if (!state.matches.length){
-          return setError("No match found. Please check the spelling and try again.");
-        }
-
-        if (state.matches.length === 1){
-          await doGet(state.matches[0].invite_id);
-          return;
-        }
-
-        renderMatches();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false, "");
-      }
-    }
-
-    function renderMatches(){
-      state.step = "matches";
-      setError("");
-
-      titleEl.textContent = "Which invite is yours?";
-      subEl.textContent = "Select your name from the list.";
-      navEl.style.display = "none";
-
-      contentEl.innerHTML = `
-        <div>
-          ${(state.matches || []).map(m => `
-            <button type="button" class="btn-name" data-id="${escapeHtml(m.invite_id)}">
-              ${escapeHtml(m.display_name)}
-              ${m.party_size ? `<div class="small">${m.party_size} in party</div>` : ``}
-            </button>
-          `).join("")}
-        </div>
-        <div class="divider"></div>
-        <button class="btn-nav ghost" type="button" id="backToFindBtn" style="width:100%;">Back</button>
-      `;
-
-      contentEl.querySelectorAll(".btn-name").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.getAttribute("data-id");
-          await doGet(id);
-        });
-      });
-
-      $("backToFindBtn").addEventListener("click", renderFind);
-    }
-
-    async function doGet(invite_id){
-      setError("");
-      setBusy(true, "Loading");
-      try{
-        const data = await post("get", { invite_id });
-        if (!data.ok) throw new Error(data.error || "Could not load invite.");
-        state.invite = data.invite;
-
-        const party = (state.invite.party || []).map((p, i) => ({
-          row_index: p.row_index,
-          attendee_id: p.attendee_id || String(i + 1),
-          full_name: p.full_name || "",
-          status: p.status || "",
-          transportation: p.transportation || "",
-          phone: p.phone || ""
-        }));
-
-        state.responses.party = party;
-
-        renderQuestions();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false, "");
-      }
-    }
-
-    function renderQuestions(){
-      state.step = "questions";
-      setError("");
-
-      titleEl.textContent = "RSVP";
-      subEl.textContent = "Phone, attendance, transportation, and attendee names are all on this screen.";
-
-      navEl.style.display = "flex";
-      backBtn.style.display = "inline-flex";
-      submitBtn.style.display = "inline-flex";
-
-      contentEl.innerHTML = `
-        <div class="section-title">Contact</div>
-        <div class="field">
-          <div class="label">Phone number (optional)</div>
-          <input id="phoneInput" type="tel" inputmode="tel" placeholder="e.g. 778-123-4567" />
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="section-title">Attendance</div>
-        <div class="field">
-          <div class="label">Are you coming?</div>
-          <div class="choice-row">
-            <button type="button" class="btn-choice" data-q="attending" data-v="Yes">Yes</button>
-            <button type="button" class="btn-choice" data-q="attending" data-v="No">No</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="label">Transportation</div>
-          <div class="choice-row">
-            <button type="button" class="btn-choice" data-q="transportation" data-v="Yes">Yes</button>
-            <button type="button" class="btn-choice" data-q="transportation" data-v="No">No</button>
-          </div>
-          <div class="small" style="margin-top:6px; text-align:center;">
-            Select “Yes” if you need transportation arranged.
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="section-title">Attendees</div>
-        <div class="small" style="text-align:center;">Confirm the full names below.</div>
-
-        <div class="attendee-block">
-          ${(state.responses.party || []).map((p, idx) => `
-            <div class="attendee-row" data-idx="${idx}">
-              <div class="attendee-head">
-                <div class="attendee-title">Attendee ${idx + 1}</div>
-                <div class="small">ID: ${escapeHtml(p.attendee_id || String(idx+1))}</div>
-              </div>
-              <div class="field" style="margin:0;">
-                <div class="label">Full name</div>
-                <input type="text" class="attendeeNameInput" value="${escapeAttr(p.full_name || "")}" placeholder="Full name" />
-              </div>
-            </div>
-          `).join("")}
-        </div>
-      `;
-
-      const phoneInput = $("phoneInput");
-      const firstPhone = (state.responses.party[0] && state.responses.party[0].phone) ? state.responses.party[0].phone : "";
-      phoneInput.value = formatPhoneLoose(firstPhone || state.responses.phone || "");
-
-      wireChoiceGroup("attending");
-      wireChoiceGroup("transportation");
-
-      if (state.responses.attending) setChoiceSelected("attending", state.responses.attending);
-      if (state.responses.transportation) setChoiceSelected("transportation", state.responses.transportation);
-    }
-
-    function wireChoiceGroup(questionKey){
-      contentEl.querySelectorAll(`.btn-choice[data-q="${questionKey}"]`).forEach(btn => {
-        btn.addEventListener("click", () => {
-          const v = btn.getAttribute("data-v");
-          state.responses[questionKey] = v;
-          setChoiceSelected(questionKey, v);
-        });
-      });
-    }
-
-    function setChoiceSelected(questionKey, value){
-      contentEl.querySelectorAll(`.btn-choice[data-q="${questionKey}"]`).forEach(b => {
-        b.classList.toggle("is-selected", b.getAttribute("data-v") === value);
-      });
-    }
-
-    function onBack(){
-      renderFind();
-    }
-
-    async function onSubmit(){
-      setError("");
-
-      const phoneInput = $("phoneInput");
-      state.responses.phone = formatPhoneLoose(phoneInput.value || "");
-
-      if (!state.responses.attending){
-        return setError("Please answer “Are you coming?”");
+      if (state.attending !== "yes" && state.attending !== "no") {
+        state.error = "Please choose Yes or No.";
+        return render();
       }
 
-      const attendeeRows = Array.from(contentEl.querySelectorAll(".attendee-row"));
-      const party = attendeeRows.map((row) => {
-        const idx = Number(row.getAttribute("data-idx"));
-        const input = row.querySelector(".attendeeNameInput");
-        const existing = state.responses.party[idx] || {};
+      // Decline: submit immediately, stop flow
+      if (state.attending === "no") {
+        state.loading = true;
+        render();
+        try {
+          const payload = {
+            invite_id: state.invite.invite_id,
+            attending: "no",
+            attending_count: 0,
+            attendees: [],
+            phone: "",
+            transportation: "",
+            notes: ""
+          };
+          const data = await api("submit", payload);
+          state.loading = false;
 
-        return {
-          row_index: existing.row_index,
-          attendee_id: existing.attendee_id,
-          full_name: (input && input.value ? input.value.trim() : ""),
-          phone: state.responses.phone
-        };
-      });
-
-      if (!party[0] || !party[0].full_name){
-        return setError("Please confirm the full name for Attendee 1.");
-      }
-
-      setBusy(true, "Submitting");
-      try{
-        const payload = {
-          invite_id: state.invite.invite_id,
-          invite_name: state.invite.invite_name,
-          responses: {
-            attending: state.responses.attending,
-            transportation: state.responses.transportation,
-            phone: state.responses.phone,
-            party
+          if (!data || !data.ok) {
+            if (data && data.locked) {
+              state.contactLine = data.contact_line || state.contactLine || "";
+              state.step = "locked";
+              return render();
+            }
+            throw new Error(data?.error || "Submit failed.");
           }
-        };
 
-        const data = await post("submit", payload);
-        if (!data.ok) throw new Error(data.error || "Submit failed.");
-        renderDone();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false, "");
+          state.step = "declined";
+          return render();
+        } catch (err) {
+          state.loading = false;
+          state.error = String(err?.message || err);
+          return render();
+        }
+      }
+
+      // Single invite YES: skip to transpo
+      if (maxSeats === 1) {
+        state.attendingCount = 1;
+        state.attendeeNames = [inviteName];
+        state.step = "transpo";
+        return render();
+      }
+
+      // Party YES validation
+      const cleaned = (state.attendeeNames || [])
+        .slice(0, state.attendingCount)
+        .map(n => (n || "").trim());
+
+      if (cleaned.length !== state.attendingCount || cleaned.some(n => !n)) {
+        state.error = "Please fill in all attendee names.";
+        return render();
+      }
+
+      state.step = "transpo";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderTranspo() {
+    setHeader("Transportation", "Do you need transport arrangements from NAIA to the venue?");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const pills = document.createElement("div");
+    pills.className = "pillRow";
+
+    pills.appendChild(pill("Yes", state.transportation === "Yes", () => { state.transportation = "Yes"; state.error=""; render(); }));
+    pills.appendChild(pill("No", state.transportation === "No", () => { state.transportation = "No"; state.error=""; render(); }));
+
+    wrap.appendChild(pills);
+
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error=""; state.step = "coming"; render(); };
+
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
+    next.onclick = () => {
+      state.error = "";
+      if (state.transportation !== "Yes" && state.transportation !== "No") {
+        state.error = "Please choose Yes or No.";
+        return render();
+      }
+      state.step = "phone";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderPhone() {
+    setHeader("Mobile number", "Please enter your PH mobile number.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const input = document.createElement("input");
+    input.type = "tel";
+    input.inputMode = "numeric";
+    input.autocomplete = "tel";
+    input.placeholder = "09XX XXX XXXX";
+    input.value = formatPH09_(state.phoneDigits);
+
+    input.oninput = (e) => {
+      const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
+      state.phoneDigits = digits;
+      e.target.value = formatPH09_(digits);
+    };
+
+    wrap.appendChild(input);
+
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.onclick = () => { state.error=""; state.step = "transpo"; render(); };
+
+    const next = document.createElement("button");
+    next.className = "primary";
+    next.textContent = "Next";
+    next.onclick = () => {
+      state.error = "";
+      if (!isValidPH09_(state.phoneDigits)) {
+        state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+        return render();
+      }
+      state.step = "notes";
+      render();
+    };
+
+    btns.appendChild(back);
+    btns.appendChild(next);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+    setTimeout(() => input.focus(), 0);
+  }
+
+  function renderNotes() {
+    setHeader("Notes", "Anything else? (Optional)");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const ta = document.createElement("textarea");
+    ta.placeholder = "Type your notes here (optional)";
+    ta.value = state.notes || "";
+    ta.oninput = (e) => state.notes = e.target.value;
+    wrap.appendChild(ta);
+
+    if (state.loading) wrap.appendChild(loadingRow());
+    if (state.error) wrap.appendChild(errorEl(state.error));
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Back";
+    back.disabled = state.loading;
+    back.onclick = () => { state.error=""; state.step = "phone"; render(); };
+
+    const submit = document.createElement("button");
+    submit.className = "primary";
+    submit.textContent = state.loading ? "Submitting…" : "Submit RSVP";
+    submit.disabled = state.loading;
+    submit.onclick = onSubmit;
+
+    btns.appendChild(back);
+    btns.appendChild(submit);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  async function onSubmit() {
+    state.error = "";
+
+    if (!state.invite?.invite_id) {
+      state.error = "Missing invite details. Please start again.";
+      state.step = "find";
+      return render();
+    }
+
+    if (state.attending !== "yes" && state.attending !== "no") {
+      state.error = "Please choose Yes or No.";
+      state.step = "coming";
+      return render();
+    }
+
+    if (state.transportation !== "Yes" && state.transportation !== "No") {
+      state.error = "Please choose Yes or No for transportation.";
+      state.step = "transpo";
+      return render();
+    }
+
+    if (!isValidPH09_(state.phoneDigits)) {
+      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+      state.step = "phone";
+      return render();
+    }
+
+    let attendees = [];
+    let attending_count = 0;
+
+    if (state.attending === "yes") {
+      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+
+      if (maxSeats === 1) {
+        attendees = [String(state.invite.invite_name || "").trim() || "Guest"];
+        attending_count = 1;
+      } else {
+        const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
+
+        attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
+        if (attendees.length !== cnt || attendees.some(x => !x)) {
+          state.error = "Please fill in all attendee names.";
+          state.step = "coming";
+          return render();
+        }
+        attending_count = cnt;
       }
     }
 
-    function renderDone(){
-      state.step = "done";
-      setError("");
+    const payload = {
+      invite_id: state.invite.invite_id,
+      attending: state.attending,
+      attending_count,
+      attendees: state.attending === "yes" ? attendees : [],
+      phone: toE164From09_(state.phoneDigits),
+      transportation: state.transportation,
+      notes: (state.notes || "").trim()
+    };
 
-      titleEl.textContent = "Thank you!";
-      subEl.textContent = "Your RSVP has been saved.";
+    state.loading = true;
+    render();
 
-      navEl.style.display = "flex";
-      backBtn.style.display = "none";
-      submitBtn.style.display = "none";
+    try {
+      const data = await api("submit", payload);
+      state.loading = false;
 
-      contentEl.innerHTML = `
-        <div class="small" style="text-align:center;">
-          If you need to make changes, refresh and submit again.
-        </div>
-      `;
-    }
-
-    function escapeHtml(s){
-      return String(s || "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-    }
-    function escapeAttr(s){
-      return escapeHtml(s).replace(/"/g,"&quot;");
-    }
-
-    function formatPhoneLoose(raw){
-      const s = String(raw || "").trim();
-      if (!s) return "";
-      const hasPlus = s.startsWith("+");
-      const digits = s.replace(/[^\d]/g, "");
-      if (hasPlus) return "+" + digits;
-      if (digits.length === 10){
-        return digits.slice(0,3) + "-" + digits.slice(3,6) + "-" + digits.slice(6);
+      if (!data || !data.ok) {
+        if (data && data.locked) {
+          state.contactLine = data.contact_line || state.contactLine || "";
+          state.step = "locked";
+          return render();
+        }
+        throw new Error(data?.error || "Submit failed.");
       }
-      if (digits.length === 11 && digits.startsWith("0")){
-        return digits;
-      }
-      return s;
+
+      state.step = "thanks";
+      render();
+    } catch (err) {
+      state.loading = false;
+      state.error = String(err?.message || err);
+      render();
     }
-  </script>
+  }
+
+  function renderLocked() {
+    setHeader("RSVP already received", "For changes, please contact the coordinator.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = state.contactLine || "Please contact the coordinator for changes.";
+    wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const startOver = document.createElement("button");
+    startOver.className = "secondary";
+    startOver.textContent = "Start over";
+    startOver.onclick = resetAll;
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(startOver);
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderThanks() {
+    setHeader("Thank you!", "See you soon.");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function renderDeclined() {
+    setHeader("Thank you!", "We’re so sorry you won’t be able to make it!");
+    elCloseWrap.style.display = "none";
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+
+    const msg = document.createElement("div");
+    msg.className = "muted";
+    msg.textContent = "Thank you for letting us know.";
+    wrap.appendChild(msg);
+
+    const btns = document.createElement("div");
+    btns.className = "btns";
+
+    const close = document.createElement("button");
+    close.className = "primary";
+    close.textContent = "Close";
+    close.onclick = closeModal;
+
+    btns.appendChild(close);
+    wrap.appendChild(btns);
+
+    elContent.appendChild(wrap);
+  }
+
+  function resetAll() {
+    state.step = "find";
+    state.loading = false;
+    state.error = "";
+    state.nameQuery = "";
+    state.matches = [];
+    state.invite = null;
+
+    state.attending = null;
+    state.attendingCount = 1;
+    state.attendeeNames = [];
+
+    state.transportation = null;
+    state.phoneDigits = "";
+    state.notes = "";
+
+    render();
+  }
+
+  function closeModal() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "RSVP_CLOSE" }, "*");
+      }
+    } catch (e) {}
+
+    const overlay = document.getElementById("overlay");
+    if (overlay) overlay.style.display = "none";
+
+    const modal = document.getElementById("modal");
+    if (modal) modal.style.display = "none";
+
+    try { window.close(); } catch (e) {}
+  }
+
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("modal").style.display = "block";
+  resetAll();
+</script>
 </body>
 </html>
