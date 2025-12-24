@@ -6,13 +6,17 @@
   <title>RSVP</title>
   <style>
     :root{
-  --text:#1a1a1a;
-  --muted:#5f6368;
-  --line:#e0e0e0;
-  --btn:#111111;
-  --btnText:#ffffff;
+  --bg:transparent;
+  --card:#f6f7fb;        /* light modal */
+  --text:#141418;        /* dark text */
+  --muted:#5a5a66;
+  --line:#dcdde6;
   --err:#c62828;
+
+  --btn:#141418;         /* primary = dark */
+  --btnText:#ffffff;
 }
+
 
     html,body{height:100%}
     body{
@@ -84,18 +88,19 @@
       text-align:center;
     }
     input, select, textarea{
-      width:100%;
-      max-width: 360px;
-      box-sizing:border-box;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.95);
-      color: #111;
-      padding:12px 12px;
-      outline:none;
-      font-size:14px;
-      text-align:center;
-    }
+  width:100%;
+  max-width: 360px;
+  box-sizing:border-box;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#ffffff;
+  color:var(--text);
+  padding:12px 12px;
+  outline:none;
+  font-size:14px;
+  text-align:center;
+}
+
     textarea{min-height:92px; resize:vertical; text-align:center;}
     .muted{color:var(--muted); font-size:13px; line-height:1.35; text-align:center;}
     .error{
@@ -125,11 +130,12 @@
       min-width:140px;
     }
     button.secondary{
-      background:transparent;
-      border:1px solid var(--line);
-      color:var(--text);
-      min-width:140px;
-    }
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--text);
+  min-width:140px;
+}
+
     button:disabled{opacity:.6; cursor:not-allowed;}
 
     .pillRow{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px;}
@@ -470,130 +476,147 @@
 
   /* ---------------- COMING ---------------- */
 
-  function renderComing() {
-    const inviteName = state.invite?.invite_name || "Guest";
-    const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
+function renderComing() {
+  const inviteName = state.invite?.invite_name || "Guest";
+  const maxSeats = Math.min(Number(state.invite?.max_seats || 1), CONFIG.maxSeatsCap);
 
-    setHeader("RSVP", `${inviteName}, are you coming?`);
-    elCloseWrap.style.display = "none";
+  setHeader("RSVP", `${inviteName}, are you coming?`);
+  elCloseWrap.style.display = "none";
 
-    const wrap = document.createElement("div");
-    wrap.className = "row";
+  const wrap = document.createElement("div");
+  wrap.className = "row";
 
-    const pills = document.createElement("div");
-    pills.className = "pillRow";
+  const pills = document.createElement("div");
+  pills.className = "pillRow";
 
-    pills.appendChild(pill("Yes", state.attending === "yes", () => {
-      state.attending = "yes";
+  pills.appendChild(pill("Yes", state.attending === "yes", () => {
+    state.attending = "yes";
+
+    // If single invite: auto set attendee and skip name questions
+    if (maxSeats === 1) {
+      state.attendingCount = 1;
+      state.attendeeNames = [inviteName];
+    } else {
       state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
       syncAttendeeNames_(maxSeats);
-      state.error = "";
-      render();
-    }));
-
-    pills.appendChild(pill("No", state.attending === "no", () => {
-      state.attending = "no";
-      state.attendingCount = 0;
-      state.attendeeNames = [];
-      state.error = "";
-      render();
-    }));
-
-    wrap.appendChild(pills);
-
-    if (state.attending === "yes") {
-      const select = document.createElement("select");
-      for (let i = 1; i <= maxSeats; i++) {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = `${i}`;
-        if (i === Number(state.attendingCount || 1)) opt.selected = true;
-        select.appendChild(opt);
-      }
-      select.onchange = (e) => {
-        state.attendingCount = Number(e.target.value);
-        syncAttendeeNames_(maxSeats);
-        render();
-      };
-      wrap.appendChild(select);
-
-      syncAttendeeNames_(maxSeats);
-
-      const note = document.createElement("div");
-      note.className = "muted";
-      note.textContent = "Please enter the full name of each attendee.";
-      wrap.appendChild(note);
-
-      for (let i = 0; i < state.attendingCount; i++) {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = `Attendee ${i + 1} full name`;
-        input.value = state.attendeeNames[i] || "";
-        input.oninput = (e) => { state.attendeeNames[i] = e.target.value; };
-        wrap.appendChild(input);
-      }
     }
 
-    if (state.error) wrap.appendChild(errorEl(state.error));
-
-    const btns = document.createElement("div");
-    btns.className = "btns";
-
-    const back = document.createElement("button");
-    back.className = "secondary";
-    back.textContent = "Back";
-    back.onclick = () => { state.error = ""; state.step = "pick"; render(); };
-
-    const next = document.createElement("button");
-    next.className = "primary";
-    next.textContent = "Next";
-    next.onclick = async () => {
-  state.error = "";
-
-  if (state.attending !== "yes" && state.attending !== "no") {
-    state.error = "Please choose Yes or No.";
-    return render();
-  }
-
-  // If NO: submit immediately, then show Declined screen
-  if (state.attending === "no") {
-    state.loading = true;
+    state.error = "";
     render();
+  }));
 
-    try {
-      const payload = {
-        invite_id: state.invite.invite_id,
-        attending: "no",
-        attending_count: 0,
-        attendees: [],
-        phone: "",
-        transportation: "",
-        notes: ""
-      };
+  pills.appendChild(pill("No", state.attending === "no", () => {
+    state.attending = "no";
+    state.attendingCount = 0;
+    state.attendeeNames = [];
+    state.error = "";
+    render();
+  }));
 
-      const data = await api("submit", payload);
-      state.loading = false;
+  wrap.appendChild(pills);
 
-      if (!data || !data.ok) {
-        if (data && data.locked) {
-          state.contactLine = data.contact_line || state.contactLine || "";
-          state.step = "locked";
-          return render();
-        }
-        throw new Error(data?.error || "Submit failed.");
-      }
+  // Only show count + names for party invites (maxSeats > 1)
+  if (state.attending === "yes" && maxSeats > 1) {
+    const select = document.createElement("select");
+    for (let i = 1; i <= maxSeats; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `${i}`;
+      if (i === Number(state.attendingCount || 1)) opt.selected = true;
+      select.appendChild(opt);
+    }
+    select.onchange = (e) => {
+      state.attendingCount = Number(e.target.value);
+      syncAttendeeNames_(maxSeats);
+      render();
+    };
+    wrap.appendChild(select);
 
-      state.step = "declined";
-      return render();
-    } catch (err) {
-      state.loading = false;
-      state.error = String(err?.message || err);
-      return render();
+    syncAttendeeNames_(maxSeats);
+
+    const note = document.createElement("div");
+    note.className = "muted";
+    note.textContent = "Please enter the full name of each attendee.";
+    wrap.appendChild(note);
+
+    for (let i = 0; i < state.attendingCount; i++) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = `Attendee ${i + 1} full name`;
+      input.value = state.attendeeNames[i] || "";
+      input.oninput = (e) => { state.attendeeNames[i] = e.target.value; };
+      wrap.appendChild(input);
     }
   }
 
-  // If YES: validate attendee names then continue flow
-  if (state.attending === "yes") {
+  if (state.loading) wrap.appendChild(loadingRow());
+  if (state.error) wrap.appendChild(errorEl(state.error));
+
+  const btns = document.createElement("div");
+  btns.className = "btns";
+
+  const back = document.createElement("button");
+  back.className = "secondary";
+  back.textContent = "Back";
+  back.onclick = () => { state.error = ""; state.step = "pick"; render(); };
+
+  const next = document.createElement("button");
+  next.className = "primary";
+  next.textContent = "Next";
+
+  next.onclick = async () => {
+    state.error = "";
+
+    if (state.attending !== "yes" && state.attending !== "no") {
+      state.error = "Please choose Yes or No.";
+      return render();
+    }
+
+    // If NO: submit decline immediately and stop flow (if you already implemented this earlier)
+    if (state.attending === "no") {
+      state.loading = true;
+      render();
+      try {
+        const payload = {
+          invite_id: state.invite.invite_id,
+          attending: "no",
+          attending_count: 0,
+          attendees: [],
+          phone: "",
+          transportation: "",
+          notes: ""
+        };
+        const data = await api("submit", payload);
+        state.loading = false;
+
+        if (!data || !data.ok) {
+          if (data && data.locked) {
+            state.contactLine = data.contact_line || state.contactLine || "";
+            state.step = "locked";
+            return render();
+          }
+          throw new Error(data?.error || "Submit failed.");
+        }
+
+        state.step = "declined";
+        return render();
+      } catch (err) {
+        state.loading = false;
+        state.error = String(err?.message || err);
+        return render();
+      }
+    }
+
+    // YES path
+    if (maxSeats === 1) {
+      // auto set and skip straight to transpo
+      state.attendingCount = 1;
+      state.attendeeNames = [inviteName];
+      state.step = "transpo";
+      return render();
+    }
+
+    // Party invite validation
     const cleaned = (state.attendeeNames || [])
       .slice(0, state.attendingCount)
       .map(n => (n || "").trim());
@@ -602,19 +625,18 @@
       state.error = "Please fill in all attendee names.";
       return render();
     }
-  }
 
-  state.step = "transpo";
-  render();
-};
+    state.step = "transpo";
+    render();
+  };
 
+  btns.appendChild(back);
+  btns.appendChild(next);
+  wrap.appendChild(btns);
 
-    btns.appendChild(back);
-    btns.appendChild(next);
-    wrap.appendChild(btns);
+  elContent.appendChild(wrap);
+}
 
-    elContent.appendChild(wrap);
-  }
 
   /* ---------------- TRANSPO ---------------- */
 
@@ -757,37 +779,43 @@
   }
 
   async function onSubmit() {
-    state.error = "";
+  state.error = "";
 
-    if (!state.invite?.invite_id) {
-      state.error = "Missing invite details. Please start again.";
-      state.step = "find";
-      return render();
-    }
+  if (!state.invite?.invite_id) {
+    state.error = "Missing invite details. Please start again.";
+    state.step = "find";
+    return render();
+  }
 
-    if (state.attending !== "yes" && state.attending !== "no") {
-      state.error = "Please choose Yes or No.";
-      state.step = "coming";
-      return render();
-    }
+  if (state.attending !== "yes" && state.attending !== "no") {
+    state.error = "Please choose Yes or No.";
+    state.step = "coming";
+    return render();
+  }
 
-    if (state.transportation !== "Yes" && state.transportation !== "No") {
-      state.error = "Please choose Yes or No for transportation.";
-      state.step = "transpo";
-      return render();
-    }
+  if (state.transportation !== "Yes" && state.transportation !== "No") {
+    state.error = "Please choose Yes or No for transportation.";
+    state.step = "transpo";
+    return render();
+  }
 
-    if (!isValidPH09_(state.phoneDigits)) {
-      state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
-      state.step = "phone";
-      return render();
-    }
+  if (!isValidPH09_(state.phoneDigits)) {
+    state.error = "Please enter a valid PH mobile number (11 digits, starts with 09).";
+    state.step = "phone";
+    return render();
+  }
 
-    let attendees = [];
-    let attending_count = 0;
+  let attendees = [];
+  let attending_count = 0;
 
-    if (state.attending === "yes") {
-      const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+  if (state.attending === "yes") {
+    const maxSeats = Math.min(Number(state.invite.max_seats || 1), CONFIG.maxSeatsCap);
+
+    // Single invite: do not ask attendee name, auto-use invite name
+    if (maxSeats === 1) {
+      attendees = [String(state.invite.invite_name || "").trim() || "Guest"];
+      attending_count = 1;
+    } else {
       const cnt = clamp(Number(state.attendingCount || 1), 1, maxSeats);
 
       attendees = (state.attendeeNames || []).slice(0, cnt).map(s => (s || "").trim());
@@ -798,41 +826,43 @@
       }
       attending_count = cnt;
     }
-
-    const payload = {
-      invite_id: state.invite.invite_id,
-      attending: state.attending,
-      attending_count,
-      attendees: state.attending === "yes" ? attendees : [],
-      phone: toE164From09_(state.phoneDigits),
-      transportation: state.transportation,
-      notes: (state.notes || "").trim()
-    };
-
-    state.loading = true;
-    render();
-
-    try {
-      const data = await api("submit", payload);
-      state.loading = false;
-
-      if (!data || !data.ok) {
-        if (data && data.locked) {
-          state.contactLine = data.contact_line || state.contactLine || "";
-          state.step = "locked";
-          return render();
-        }
-        throw new Error(data?.error || "Submit failed.");
-      }
-
-      state.step = "thanks";
-      render();
-    } catch (err) {
-      state.loading = false;
-      state.error = String(err?.message || err);
-      render();
-    }
   }
+
+  const payload = {
+    invite_id: state.invite.invite_id,
+    attending: state.attending,
+    attending_count,
+    attendees: state.attending === "yes" ? attendees : [],
+    phone: toE164From09_(state.phoneDigits),
+    transportation: state.transportation,
+    notes: (state.notes || "").trim()
+  };
+
+  state.loading = true;
+  render();
+
+  try {
+    const data = await api("submit", payload);
+    state.loading = false;
+
+    if (!data || !data.ok) {
+      if (data && data.locked) {
+        state.contactLine = data.contact_line || state.contactLine || "";
+        state.step = "locked";
+        return render();
+      }
+      throw new Error(data?.error || "Submit failed.");
+    }
+
+    state.step = "thanks";
+    render();
+  } catch (err) {
+    state.loading = false;
+    state.error = String(err?.message || err);
+    render();
+  }
+}
+
 
   /* ---------------- LOCKED / THANKS ---------------- */
 
