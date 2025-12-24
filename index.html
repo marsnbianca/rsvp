@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>RSVP</title>
+  <title>Mars & Bianca</title>
   <style>
     :root{
       --bg:transparent;
@@ -164,7 +164,6 @@
       min-width: 140px;
     }
 
-    /* Visible hover on dark buttons */
     button.primary:hover{
       background:#2a2a30;
     }
@@ -200,7 +199,7 @@
       border: 1.5px solid var(--pillBorder);
       color: var(--text);
       min-width:150px;
-      border-radius:999px; /* more pill-like */
+      border-radius:999px;
       padding:11px 16px;
       font-weight:700;
       transition: background .08s ease, border-color .08s ease;
@@ -412,7 +411,7 @@
   }
 
   function formatPH09_(digits) {
-    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
+    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11); // hard cap at 11
     const p1 = d.slice(0, 4);
     const p2 = d.slice(4, 7);
     const p3 = d.slice(7, 11);
@@ -422,14 +421,15 @@
   }
 
   function isValidPH09_(digits) {
-    const d = (digits || "").replace(/[^\d]/g, "");
+    const d = (digits || "").replace(/[^\d]/g, "").slice(0, 11);
     return d.length === 11 && d.startsWith("09");
   }
 
-  function toE164From09_(digits09) {
-    const d = (digits09 || "").replace(/[^\d]/g, "");
+  // ✅ Returns exactly what the guest sees, if valid. Otherwise "".
+  function visiblePHPhone_(digits09) {
+    const d = (digits09 || "").replace(/[^\d]/g, "").slice(0, 11);
     if (d.length !== 11 || !d.startsWith("09")) return "";
-    return "+63" + d.slice(1);
+    return formatPH09_(d);
   }
 
   function render() {
@@ -609,7 +609,7 @@
 
       if (maxSeats === 1) {
         state.attendingCount = 1;
-        state.attendeeNames = [inviteName]; // UI convenience
+        state.attendeeNames = [inviteName];
       } else {
         state.attendingCount = clamp(state.attendingCount || 1, 1, maxSeats);
         syncAttendeeNames_(maxSeats);
@@ -809,6 +809,7 @@
     input.value = formatPH09_(state.phoneDigits);
 
     input.oninput = (e) => {
+      // ✅ Always keep only the first 11 digits, so excess never sticks
       const digits = (e.target.value || "").replace(/[^\d]/g, "").slice(0, 11);
       state.phoneDigits = digits;
       e.target.value = formatPH09_(digits);
@@ -934,12 +935,15 @@
       }
     }
 
+    // ✅ Send exactly what is visible to the guest
+    const visiblePhone = visiblePHPhone_(state.phoneDigits);
+
     const payload = {
       invite_id: state.invite.invite_id,
       attending: state.attending,
       attending_count,
       attendees: state.attending === "yes" ? attendees : [],
-      phone: toE164From09_(state.phoneDigits),
+      phone: visiblePhone,                 // ✅ "09XX XXX XXXX"
       transportation: state.transportation,
       notes: (state.notes || "").trim()
     };
