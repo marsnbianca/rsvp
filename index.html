@@ -1,695 +1,322 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>RSVP</title>
-  <style>
-    :root{
-      --bg: transparent;
-      --card:#f6f7fb;
-      --text:#141418;
-      --muted:#5a5a66;
-      --line:#dcdde6;
-      --err:#c62828;
+/** RSVP Web App v1production (router: find/get/submit)
+ * Sheet headers expected:
+ * invite_id, invite_name, relationship, max_seats, status, attending_count,
+ * attendee_fullname, phone, transportation, notes, updated_at
+ */
 
-      --btn:#141418;
-      --btnText:#ffffff;
-      --btnHover:#2a2a2f;
+const SPREADSHEET_ID = "1D8DrNXPUFTzTr0WdidqQZOYo2IXHzseZ-4xpR5CtEic";
+const SHEET_GUESTLIST = "GuestList";
 
-      --choiceBg:#ffffff;
-      --choiceText:#141418;
-      --choiceLine:#cfd0da;
-      --choiceHover:#f0f1f7;
-      --choiceSelectedBg:#141418;
-      --choiceSelectedText:#ffffff;
+function doPost(e) {
+  try {
+    const body = e && e.postData && e.postData.contents ? e.postData.contents : "{}";
+    const payload = JSON.parse(body);
 
-      --nameBg:#ffffff;
-      --nameHover:#f0f1f7;
+    const action = String(payload.action || "").toLowerCase().trim();
+    if (action === "find") return json_(find_(payload));
+    if (action === "get") return json_(get_(payload));
+    if (action === "submit") return json_(submit_(payload));
 
-      --shadow: 0 14px 40px rgba(0,0,0,.18);
-      --radius: 16px;
+    return json_({ ok: false, error: "Unknown action." });
+  } catch (err) {
+    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+}
+
+function json_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * FIND
+ * Expects: { query }
+ * Returns: matches: [{ invite_id, display_name, party_size }]
+ */
+function find_(payload) {
+  const query = normalize_(payload.query || "");
+  if (!query) return { ok: true, matches: [] };
+
+  const sh = getSheet_();
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return { ok: true, matches: [] };
+
+  const header = values[0].map(h => String(h || "").trim());
+  const idx = indexMap_(header);
+
+  const cInviteId = idx.invite_id;
+  const cInviteName = idx.invite_name;
+  const cMaxSeats = idx.max_seats;
+
+  if (cInviteId < 0 || cInviteName < 0) {
+    return { ok: false, error: "Missing required headers: invite_id, invite_name." };
+  }
+
+  // De-dupe by invite_id so we don't show multiple attendee rows as multiple matches
+  const seen = new Set();
+  const out = [];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const inviteId = String(row[cInviteId] || "").trim();
+    const inviteName = String(row[cInviteName] || "").trim();
+    if (!inviteId || !inviteName) continue;
+
+    if (seen.has(inviteId)) continue;
+    if (!nameMatches_(inviteName, query)) continue;
+
+    seen.add(inviteId);
+    out.push({
+      invite_id: inviteId,
+      display_name: inviteName,
+      party_size: cMaxSeats >= 0 ? Number(row[cMaxSeats] || 0) : 0
+    });
+  }
+
+  return { ok: true, matches: out.slice(0, 25) };
+}
+
+/**
+ * GET
+ * Expects: { invite_id }
+ * Returns: { invite: { invite_id, invite_name, party:[{row_index, attendee_id, full_name, status, transportation, phone, notes, updated_at}] } }
+ */
+function get_(payload) {
+  const inviteId = String(payload.invite_id || "").trim();
+  if (!inviteId) return { ok: false, error: "Missing invite_id." };
+
+  const sh = getSheet_();
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return { ok: false, error: "GuestList is empty." };
+
+  const header = values[0].map(h => String(h || "").trim());
+  const idx = indexMap_(header);
+
+  const cInviteId = idx.invite_id;
+  const cInviteName = idx.invite_name;
+
+  const cStatus = idx.status;
+  const cAttendeeFullname = idx.attendee_fullname;
+  const cPhone = idx.phone;
+  const cTransportation = idx.transportation;
+  const cNotes = idx.notes;
+  const cUpdatedAt = idx.updated_at;
+
+  if (cInviteId < 0 || cInviteName < 0 || cAttendeeFullname < 0) {
+    return { ok: false, error: "Missing required headers: invite_id, invite_name, attendee_fullname." };
+  }
+
+  let inviteName = "";
+  const party = [];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    if (String(row[cInviteId] || "").trim() !== inviteId) continue;
+
+    if (!inviteName) inviteName = String(row[cInviteName] || "").trim();
+
+    party.push({
+      row_index: r + 1, // sheet row number
+      attendee_id: String(party.length + 1), // derived since you don't have an attendee_id column
+      full_name: String(row[cAttendeeFullname] || "").trim(),
+      status: cStatus >= 0 ? String(row[cStatus] || "").trim() : "",
+      transportation: cTransportation >= 0 ? String(row[cTransportation] || "").trim() : "",
+      phone: cPhone >= 0 ? String(row[cPhone] || "").trim() : "",
+      notes: cNotes >= 0 ? String(row[cNotes] || "").trim() : "",
+      updated_at: cUpdatedAt >= 0 ? String(row[cUpdatedAt] || "").trim() : ""
+    });
+  }
+
+  if (!inviteName) return { ok: false, error: "Invite not found." };
+
+  return {
+    ok: true,
+    invite: {
+      invite_id: inviteId,
+      invite_name: inviteName,
+      party
     }
+  };
+}
 
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color:var(--text);
-      background: var(--bg);
+/**
+ * SUBMIT
+ * Expects:
+ * {
+ *   invite_id,
+ *   invite_name,
+ *   responses: {
+ *     attending: "Yes"|"No",          -> written to status
+ *     transportation: "Yes"|"No",
+ *     phone: "...",
+ *     party: [{ row_index, full_name/fullName, ... }]
+ *   }
+ * }
+ */
+function submit_(payload) {
+  const inviteId = String(payload.invite_id || "").trim();
+  if (!inviteId) return { ok: false, error: "Missing invite_id." };
+
+  const responses = payload.responses || {};
+  const party = Array.isArray(responses.party) ? responses.party : [];
+
+  const sh = getSheet_();
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return { ok: false, error: "GuestList is empty." };
+
+  const header = values[0].map(h => String(h || "").trim());
+  const idx = indexMap_(header);
+
+  const cInviteId = idx.invite_id;
+  const cInviteName = idx.invite_name;
+
+  const cStatus = idx.status; // "Are you coming?"
+  const cAttendingCount = idx.attending_count;
+  const cAttendeeFullname = idx.attendee_fullname;
+  const cPhone = idx.phone;
+  const cTransportation = idx.transportation;
+  const cNotes = idx.notes;
+  const cUpdatedAt = idx.updated_at;
+
+  if (cInviteId < 0 || cAttendeeFullname < 0) {
+    return { ok: false, error: "Missing required headers: invite_id, attendee_fullname." };
+  }
+
+  // All sheet rows that belong to this invite
+  const rowsForInvite = [];
+  for (let r = 1; r < values.length; r++) {
+    if (String(values[r][cInviteId] || "").trim() === inviteId) {
+      rowsForInvite.push(r + 1); // sheet row number
     }
-
-    /* Overlay modal */
-    .overlay{
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      background: rgba(0,0,0,.35);
-    }
-
-    .modal{
-      width: min(560px, 100%);
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255,255,255,.35);
-      overflow: hidden;
-    }
-
-    .modal-inner{
-      padding: 18px;
-    }
-
-    .title{
-      font-size: 20px;
-      font-weight: 700;
-      margin: 0 0 6px 0;
-      letter-spacing: .2px;
-    }
-    .sub{
-      margin: 0 0 14px 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .divider{
-      height: 1px;
-      background: var(--line);
-      margin: 14px 0;
-    }
-
-    .field{
-      display:flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 10px 0;
-    }
-    .label{
-      font-size: 12px;
-      color: var(--muted);
-    }
-    input[type="text"], input[type="tel"]{
-      width: 100%;
-      padding: 12px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: #fff;
-      font-size: 14px;
-      outline: none;
-    }
-    input[type="text"]:focus, input[type="tel"]:focus{
-      border-color: #b9bbca;
-    }
-
-    .error{
-      color: var(--err);
-      font-size: 12px;
-      margin-top: 8px;
-    }
-
-    /* Buttons */
-    button{
-      border: none;
-      cursor: pointer;
-      font: inherit;
-    }
-
-    /* Name match buttons */
-    .btn-name{
-      width: 100%;
-      text-align: left;
-      padding: 12px 12px;
-      border-radius: 12px;
-      background: var(--nameBg);
-      border: 1px solid var(--line);
-      margin: 8px 0 0 0;
-      transition: background .15s ease, transform .02s ease;
-    }
-    .btn-name:hover{ background: var(--nameHover); }
-    .btn-name:active{ transform: translateY(1px); }
-
-    /* Choice buttons (Yes/No for questions) */
-    .choice-row{
-      display:flex;
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .btn-choice{
-      flex: 1;
-      padding: 12px 12px;
-      border-radius: 12px;
-      background: var(--choiceBg);
-      color: var(--choiceText);
-      border: 1px solid var(--choiceLine);
-      transition: background .15s ease, color .15s ease, transform .02s ease;
-      text-align: center;
-      font-weight: 600;
-    }
-    .btn-choice:hover{
-      background: var(--choiceHover);
-    }
-    .btn-choice.is-selected{
-      background: var(--choiceSelectedBg);
-      color: var(--choiceSelectedText);
-      border-color: var(--choiceSelectedBg);
-    }
-    .btn-choice:active{ transform: translateY(1px); }
-
-    /* Nav buttons (Back/Next/Submit/Close) */
-    .nav{
-      display:flex;
-      gap: 10px;
-      padding: 14px 18px;
-      border-top: 1px solid var(--line);
-      background: rgba(255,255,255,.35);
-    }
-    .btn-nav{
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: var(--btn);
-      color: var(--btnText);
-      font-weight: 700;
-      transition: background .15s ease, transform .02s ease, opacity .15s ease;
-      min-width: 110px;
-    }
-    .btn-nav:hover{ background: var(--btnHover); }
-    .btn-nav:active{ transform: translateY(1px); }
-    .btn-nav.ghost{
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--line);
-      font-weight: 700;
-    }
-    .btn-nav.ghost:hover{
-      background: #eef0f8;
-    }
-    .btn-nav:disabled{
-      opacity: .55;
-      cursor: not-allowed;
-    }
-
-    /* Attendees */
-    .attendee-block{
-      margin-top: 10px;
-      display:flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .attendee-row{
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .attendee-head{
-      display:flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .attendee-title{
-      font-weight: 800;
-      font-size: 13px;
-    }
-    .small{
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .spinner{
-      display:inline-block;
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      border: 2px solid rgba(0,0,0,.18);
-      border-top-color: rgba(0,0,0,.55);
-      animation: spin 700ms linear infinite;
-      vertical-align: -3px;
-      margin-right: 8px;
-    }
-    @keyframes spin{ to{ transform: rotate(360deg);} }
-  </style>
-</head>
-
-<body>
-  <div class="overlay" id="overlay" aria-modal="true" role="dialog">
-    <div class="modal">
-      <div class="modal-inner">
-        <h1 class="title" id="title">Find your invite</h1>
-        <p class="sub" id="sub">Enter your name to look up your invitation.</p>
-
-        <div id="content"></div>
-
-        <div class="error" id="error" style="display:none;"></div>
-      </div>
-
-      <div class="nav" id="nav" style="display:none;">
-        <button class="btn-nav ghost" id="backBtn" type="button">Back</button>
-        <div style="flex:1;"></div>
-        <button class="btn-nav" id="nextBtn" type="button">Next</button>
-        <button class="btn-nav" id="submitBtn" type="button" style="display:none;">Submit</button>
-        <button class="btn-nav ghost" id="closeBtn" type="button">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec"
-    };
-
-    const state = {
-      step: "find", // find | matches | questions | done
-      matches: [],
-      invite: null,
-      responses: {
-        attending: "",
-        transportation: "",
-        phone: "",
-        party: [] // attendee objects
-      },
-      busy: false
-    };
-
-    const $ = (id) => document.getElementById(id);
-
-    const titleEl = $("title");
-    const subEl = $("sub");
-    const contentEl = $("content");
-    const errorEl = $("error");
-    const navEl = $("nav");
-
-    const backBtn = $("backBtn");
-    const nextBtn = $("nextBtn");
-    const submitBtn = $("submitBtn");
-    const closeBtn = $("closeBtn");
-
-    init();
-
-    function init(){
-      backBtn.addEventListener("click", onBack);
-      nextBtn.addEventListener("click", onNext);
-      submitBtn.addEventListener("click", onSubmit);
-      closeBtn.addEventListener("click", () => closeModal());
-
-      renderFind();
-    }
-
-    function closeModal(){
-      // Keep it simple for v1production: hide overlay
-      $("overlay").style.display = "none";
-    }
-
-    function setError(msg){
-      if (!msg){
-        errorEl.style.display = "none";
-        errorEl.textContent = "";
-        return;
-      }
-      errorEl.style.display = "block";
-      errorEl.textContent = msg;
-    }
-
-    function setBusy(isBusy, label){
-      state.busy = isBusy;
-      nextBtn.disabled = isBusy;
-      backBtn.disabled = isBusy;
-      submitBtn.disabled = isBusy;
-      closeBtn.disabled = isBusy;
-
-      // Optional inline spinner label on Next/Submit
-      if (isBusy && label){
-        nextBtn.dataset.prev = nextBtn.textContent;
-        submitBtn.dataset.prev = submitBtn.textContent;
-        if (nextBtn.style.display !== "none") nextBtn.innerHTML = `<span class="spinner"></span>${label}`;
-        if (submitBtn.style.display !== "none") submitBtn.innerHTML = `<span class="spinner"></span>${label}`;
-      } else {
-        if (nextBtn.dataset.prev) nextBtn.textContent = nextBtn.dataset.prev;
-        if (submitBtn.dataset.prev) submitBtn.textContent = submitBtn.dataset.prev;
-      }
-    }
-
-    async function post(action, payload){
-      const res = await fetch(CONFIG.webAppUrl, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ action, ...payload })
-      });
-      return await res.json();
-    }
-
-    /* STEP 1: FIND */
-    function renderFind(){
-      state.step = "find";
-      state.matches = [];
-      state.invite = null;
-      state.responses = { attending:"", transportation:"", phone:"", party: [] };
-      setError("");
-
-      titleEl.textContent = "Find your invite";
-      subEl.textContent = "Enter your name to look up your invitation.";
-
-      navEl.style.display = "none";
-      contentEl.innerHTML = `
-        <div class="field">
-          <div class="label">Full name</div>
-          <input id="nameInput" type="text" autocomplete="name" placeholder="Type your name" />
-        </div>
-        <button class="btn-nav" type="button" id="findBtn" style="width:100%;">Search</button>
-      `;
-
-      const nameInput = $("nameInput");
-      const findBtn = $("findBtn");
-
-      findBtn.addEventListener("click", async () => {
-        const q = (nameInput.value || "").trim();
-        if (!q) return setError("Please enter your name.");
-        await doFind(q);
-      });
-
-      nameInput.addEventListener("keydown", async (e) => {
-        if (e.key === "Enter"){
-          const q = (nameInput.value || "").trim();
-          if (!q) return setError("Please enter your name.");
-          await doFind(q);
-        }
-      });
-    }
-
-    async function doFind(query){
-      setError("");
-      setBusy(true, "Searching");
-      try{
-        const data = await post("find", { query });
-        if (!data.ok) throw new Error(data.error || "Search failed.");
-        state.matches = data.matches || [];
-
-        if (!state.matches.length){
-          setBusy(false);
-          return setError("No match found. Please check the spelling and try again.");
-        }
-
-        if (state.matches.length === 1){
-          // Auto-select single invite
-          await doGet(state.matches[0].invite_id);
-          return;
-        }
-
-        renderMatches();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false);
-      }
-    }
-
-    /* STEP 2: MULTI MATCH */
-    function renderMatches(){
-      state.step = "matches";
-      setError("");
-
-      titleEl.textContent = "Which invite is yours?";
-      subEl.textContent = "Select your name from the list.";
-
-      navEl.style.display = "none";
-
-      contentEl.innerHTML = `
-        <div>
-          ${(state.matches || []).map(m => `
-            <button type="button" class="btn-name" data-id="${escapeHtml(m.invite_id)}">
-              ${escapeHtml(m.display_name)}
-              ${m.party_size ? `<div class="small">${m.party_size} in party</div>` : ``}
-            </button>
-          `).join("")}
-        </div>
-        <div class="divider"></div>
-        <button class="btn-nav ghost" type="button" id="backToFindBtn" style="width:100%;">Back</button>
-      `;
-
-      contentEl.querySelectorAll(".btn-name").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.getAttribute("data-id");
-          await doGet(id);
-        });
-      });
-
-      $("backToFindBtn").addEventListener("click", renderFind);
-    }
-
-    async function doGet(invite_id){
-      setError("");
-      setBusy(true, "Loading");
-      try{
-        const data = await post("get", { invite_id });
-        if (!data.ok) throw new Error(data.error || "Could not load invite.");
-        state.invite = data.invite;
-
-        // Build party model used by UI
-        const party = (state.invite.party || []).map((p, i) => ({
-          row_index: p.row_index,                 // important for exact row updates
-          attendee_id: p.attendee_id || String(i + 1),
-          full_name: p.full_name || "",           // existing full name from sheet
-          attending: p.attending || "",           // optional per-attendee, but we also apply overall
-          transportation: p.transportation || "",
-          phone: p.phone || ""
-        }));
-
-        state.responses.party = party;
-
-        renderQuestions();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false);
-      }
-    }
-
-    /* STEP 3: QUESTIONS */
-    function renderQuestions(){
-      state.step = "questions";
-      setError("");
-
-      titleEl.textContent = "RSVP";
-      subEl.textContent = "Please answer a few quick questions.";
-
-      navEl.style.display = "flex";
-      backBtn.style.display = "inline-flex";
-      nextBtn.style.display = "inline-flex";
-      submitBtn.style.display = "none";
-
-      // If you want step-by-step pages, keep next/back logic.
-      // For v1production, we’ll keep a single screen and switch Next -> Submit.
-      nextBtn.style.display = "none";
-      submitBtn.style.display = "inline-flex";
-
-      contentEl.innerHTML = `
-        <div class="field">
-          <div class="label">Phone number (optional)</div>
-          <input id="phoneInput" type="tel" inputmode="tel" placeholder="e.g. 778-123-4567" />
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="field">
-          <div class="label">Are you coming?</div>
-          <div class="choice-row" id="attendingChoices">
-            <button type="button" class="btn-choice" data-q="attending" data-v="Yes">Yes</button>
-            <button type="button" class="btn-choice" data-q="attending" data-v="No">No</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="label">Transportation</div>
-          <div class="choice-row" id="transportChoices">
-            <button type="button" class="btn-choice" data-q="transportation" data-v="Yes">Yes</button>
-            <button type="button" class="btn-choice" data-q="transportation" data-v="No">No</button>
-          </div>
-          <div class="small" style="margin-top:6px;">Select “Yes” if you need transportation arranged.</div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="field">
-          <div class="label">Attendees</div>
-          <div class="small">Confirm the full names below.</div>
-
-          <div class="attendee-block" id="attendeeBlock">
-            ${(state.responses.party || []).map((p, idx) => `
-              <div class="attendee-row" data-idx="${idx}">
-                <div class="attendee-head">
-                  <div class="attendee-title">Attendee ${idx + 1}</div>
-                  ${p.attendee_id ? `<div class="small">ID: ${escapeHtml(p.attendee_id)}</div>` : `<div class="small"></div>`}
-                </div>
-                <div class="field" style="margin:0;">
-                  <div class="label">Full name</div>
-                  <input type="text" class="attendeeNameInput" value="${escapeAttr(p.full_name || "")}" placeholder="Full name" />
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `;
-
-      // Prefill phone from attendee 1 if present
-      const phoneInput = $("phoneInput");
-      const firstPhone = (state.responses.party && state.responses.party[0] && state.responses.party[0].phone) ? state.responses.party[0].phone : "";
-      phoneInput.value = formatPhoneLoose(firstPhone || state.responses.phone || "");
-
-      // Wire up yes/no buttons with distinct class and hover/selected states
-      wireChoiceGroup("attending");
-      wireChoiceGroup("transportation");
-
-      // Restore selected state if already chosen
-      if (state.responses.attending) setChoiceSelected("attending", state.responses.attending);
-      if (state.responses.transportation) setChoiceSelected("transportation", state.responses.transportation);
-    }
-
-    function wireChoiceGroup(questionKey){
-      contentEl.querySelectorAll(`.btn-choice[data-q="${questionKey}"]`).forEach(btn => {
-        btn.addEventListener("click", () => {
-          const v = btn.getAttribute("data-v");
-          state.responses[questionKey] = v;
-          setChoiceSelected(questionKey, v);
-
-          // If decline, you may want to lock out further steps immediately
-          // Keeping your v1 behavior: decline stops flow on submit.
-        });
-      });
-    }
-
-    function setChoiceSelected(questionKey, value){
-      contentEl.querySelectorAll(`.btn-choice[data-q="${questionKey}"]`).forEach(b => {
-        b.classList.toggle("is-selected", b.getAttribute("data-v") === value);
-      });
-    }
-
-    function onBack(){
-      // In single-screen questions mode, back goes to find
-      renderFind();
-    }
-
-    function onNext(){
-      // Not used in this single-screen layout
-    }
-
-    async function onSubmit(){
-      setError("");
-
-      // Collect current UI values
-      const phoneInput = $("phoneInput");
-      state.responses.phone = formatPhoneLoose(phoneInput.value || "");
-
-      // Must choose attending
-      if (!state.responses.attending){
-        return setError("Please answer “Are you coming?”");
+  }
+  if (!rowsForInvite.length) return { ok: false, error: "Invite not found." };
+
+  const updatedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+
+  const attendingValue = responses.attending != null ? String(responses.attending).trim() : "";
+  const transportationValue = responses.transportation != null ? String(responses.transportation).trim() : "";
+  const phoneValue = responses.phone != null ? String(responses.phone).trim() : "";
+
+  // IMPORTANT: always handle attendee 1 (index 0) too
+  // Write attendee_fullname for each party row using its row_index.
+  // If row_index is missing, map sequentially onto rowsForInvite.
+  if (party.length) {
+    for (let i = 0; i < party.length; i++) {
+      const p = party[i] || {};
+
+      const fullName = (p.full_name != null ? p.full_name : p.fullName);
+      const nameToWrite = fullName != null ? String(fullName).trim() : "";
+
+      let targetRow = p.row_index ? Number(p.row_index) : null;
+      if (!targetRow || isNaN(targetRow)) {
+        targetRow = rowsForInvite[i] || rowsForInvite[rowsForInvite.length - 1];
       }
 
-      // If they are not coming, stop flow (as per your v1 behavior)
-      // but still submit the decline state + names if provided
-      const attendeeRows = Array.from(contentEl.querySelectorAll(".attendee-row"));
-      const party = attendeeRows.map((row) => {
-        const idx = Number(row.getAttribute("data-idx"));
-        const input = row.querySelector(".attendeeNameInput");
-        const existing = state.responses.party[idx] || {};
+      // attendee_fullname
+      sh.getRange(targetRow, cAttendeeFullname + 1).setValue(nameToWrite);
 
-        return {
-          row_index: existing.row_index,
-          attendee_id: existing.attendee_id,
-          full_name: (input && input.value ? input.value.trim() : ""), // IMPORTANT: captures attendee 1 as well
-          attending: state.responses.attending,
-          transportation: state.responses.transportation,
-          phone: state.responses.phone
-        };
-      });
+      // keep these consistent across all attendee rows
+      if (cStatus >= 0 && attendingValue) sh.getRange(targetRow, cStatus + 1).setValue(attendingValue);
+      if (cTransportation >= 0 && transportationValue) sh.getRange(targetRow, cTransportation + 1).setValue(transportationValue);
+      if (cPhone >= 0 && phoneValue) sh.getRange(targetRow, cPhone + 1).setValue(phoneValue);
+      if (cUpdatedAt >= 0) sh.getRange(targetRow, cUpdatedAt + 1).setValue(updatedAt);
+    }
+  } else {
+    // No party array sent: still record the overall selections on all rows
+    for (let j = 0; j < rowsForInvite.length; j++) {
+      const rowNum = rowsForInvite[j];
+      if (cStatus >= 0 && attendingValue) sh.getRange(rowNum, cStatus + 1).setValue(attendingValue);
+      if (cTransportation >= 0 && transportationValue) sh.getRange(rowNum, cTransportation + 1).setValue(transportationValue);
+      if (cPhone >= 0 && phoneValue) sh.getRange(rowNum, cPhone + 1).setValue(phoneValue);
+      if (cUpdatedAt >= 0) sh.getRange(rowNum, cUpdatedAt + 1).setValue(updatedAt);
+    }
+  }
 
-      // Validate full names (optional strictness)
-      // If you want attendee 1 required:
-      if (!party[0] || !party[0].full_name){
-        return setError("Please confirm the full name for Attendee 1.");
-      }
-
-      setBusy(true, "Submitting");
-      try{
-        const payload = {
-          invite_id: state.invite.invite_id,
-          invite_name: state.invite.invite_name,
-          responses: {
-            attending: state.responses.attending,
-            transportation: state.responses.transportation,
-            phone: state.responses.phone,
-            party
-          }
-        };
-
-        const data = await post("submit", payload);
-        if (!data.ok) throw new Error(data.error || "Submit failed.");
-
-        renderDone();
-      } catch(err){
-        setError(String(err.message || err));
-      } finally {
-        setBusy(false);
+  // attending_count:
+  // If "No" => 0
+  // If "Yes" => count non-empty attendee_fullname from submitted party (fallback to current sheet if party missing)
+  let count = 0;
+  if (attendingValue.toLowerCase() === "yes") {
+    if (party.length) {
+      count = party.filter(p => {
+        const fn = (p && (p.full_name != null ? p.full_name : p.fullName)) ? String(p.full_name != null ? p.full_name : p.fullName).trim() : "";
+        return !!fn;
+      }).length;
+    } else {
+      // fallback: count existing names on sheet for this invite
+      for (let k = 0; k < rowsForInvite.length; k++) {
+        const rowNum = rowsForInvite[k];
+        const val = String(sh.getRange(rowNum, cAttendeeFullname + 1).getValue() || "").trim();
+        if (val) count++;
       }
     }
+  } else if (attendingValue.toLowerCase() === "no") {
+    count = 0;
+  }
 
-    function renderDone(){
-      state.step = "done";
-      setError("");
+  // write attending_count + invite_name on FIRST row only
+  const firstRow = rowsForInvite[0];
+  if (cAttendingCount >= 0) sh.getRange(firstRow, cAttendingCount + 1).setValue(count);
 
-      titleEl.textContent = "Thank you!";
-      subEl.textContent = "Your RSVP has been saved.";
+  const incomingInviteName = String(payload.invite_name || "").trim();
+  if (incomingInviteName && cInviteName >= 0) {
+    sh.getRange(firstRow, cInviteName + 1).setValue(incomingInviteName);
+  }
 
-      navEl.style.display = "flex";
-      backBtn.style.display = "none";
-      nextBtn.style.display = "none";
-      submitBtn.style.display = "none";
+  // updated_at on first row too (in case party was shorter than existing rows)
+  if (cUpdatedAt >= 0) sh.getRange(firstRow, cUpdatedAt + 1).setValue(updatedAt);
 
-      contentEl.innerHTML = `
-        <div class="small">
-          If you need to make changes, you can refresh and submit again.
-        </div>
-      `;
-    }
+  return { ok: true, updated_at: updatedAt, attending_count: count };
+}
 
-    function escapeHtml(s){
-      return String(s || "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-    }
-    function escapeAttr(s){
-      return escapeHtml(s).replace(/"/g,"&quot;");
-    }
+/** Helpers **/
 
-    // Basic phone formatting, keeps your PH/NA looseness without breaking input
-    function formatPhoneLoose(raw){
-      const s = String(raw || "").trim();
-      if (!s) return "";
+function getSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_GUESTLIST);
+  if (!sh) throw new Error("GuestList sheet not found.");
+  return sh;
+}
 
-      // Keep leading + if present
-      const hasPlus = s.startsWith("+");
-      const digits = s.replace(/[^\d]/g, "");
+function indexMap_(headerRow) {
+  const map = {};
+  for (let i = 0; i < headerRow.length; i++) {
+    const key = normalizeHeader_(headerRow[i]);
+    if (!key) continue;
+    map[key] = i;
+  }
+  return map;
+}
 
-      if (hasPlus) return "+" + digits;
+function normalizeHeader_(h) {
+  return String(h || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
 
-      // North America 10 digits => 778-123-4567
-      if (digits.length === 10){
-        return digits.slice(0,3) + "-" + digits.slice(3,6) + "-" + digits.slice(6);
-      }
+function normalize_(s) {
+  return String(s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[’']/g, "'")
+    .replace(/[^a-z0-9\s'-]/g, "");
+}
 
-      // PH common 11 digits starting with 0 => keep as 0XXXXXXXXXX
-      if (digits.length === 11 && digits.startsWith("0")){
-        return digits;
-      }
+function nameMatches_(candidateName, queryNormalized) {
+  const c = normalize_(candidateName);
+  if (!c || !queryNormalized) return false;
 
-      return s;
-    }
-  </script>
-</body>
-</html>
+  if (c === queryNormalized) return true;
+  if (c.indexOf(queryNormalized) >= 0) return true;
+
+  const qTokens = queryNormalized.split(" ").filter(Boolean);
+  let hits = 0;
+  for (const t of qTokens) {
+    if (t.length < 2) continue;
+    if (c.indexOf(t) >= 0) hits++;
+  }
+  return hits >= Math.max(1, Math.ceil(qTokens.length * 0.6));
+}
