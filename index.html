@@ -207,16 +207,6 @@
       text-align: center;
       max-width: 420px;
     }
-
-    /* Honeypot: must be visually hidden but still in DOM */
-    .hpWrap{
-      position:absolute;
-      left:-10000px;
-      top:auto;
-      width:1px;
-      height:1px;
-      overflow:hidden;
-    }
   </style>
 </head>
 
@@ -225,37 +215,35 @@
     <div id="modal">
       <header>
         <h1 class="title" id="headerTitle">RSVP</h1>
-        <p class="subtitle" id="headerSubtitle">Find your invite to get started.</p>
+        <p class="subtitle" id="headerSubtitle">Enter your name to start.</p>
         <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
       </header>
 
       <main>
-        <!-- HONEYPOT -->
-        <div class="hpWrap" aria-hidden="true">
-          <label for="hpInput">Leave this blank</label>
-          <input id="hpInput" type="text" autocomplete="off" tabindex="-1" />
-        </div>
+        <!-- honeypot (hidden) -->
+        <input id="hpInput" type="text" tabindex="-1" autocomplete="off" style="display:none;" />
 
         <!-- FIND -->
         <section id="stepFind" class="col">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
-            <label for="nameInput">Full name</label>
-            <input id="nameInput" type="text" inputmode="text" autocomplete="name" placeholder="Type your name" />
-            <div class="help">Tip: try first and last name.</div>
+            <label for="nameInput">Name</label>
+            <input id="nameInput" type="text" inputmode="text" autocomplete="name" placeholder="First + last name" />
             <div id="findErr" class="err hidden"></div>
           </div>
 
           <div class="footer">
-            <button class="btn primary" id="findBtn" type="button">Find my invite</button>
+            <button class="btn primary" id="findBtn" type="button">Find</button>
           </div>
         </section>
 
         <!-- PICK -->
         <section id="stepPick" class="col hidden">
+          <div class="help" id="pickSummary" style="margin-top:0;"></div>
           <div id="pickList" class="col" style="width:100%;"></div>
           <div id="pickErr" class="err hidden"></div>
 
           <div class="footer">
+            <button class="btn secondary" id="pickNotMeBtn" type="button">Not me</button>
             <button class="btn secondary" id="pickBackBtn" type="button">Back</button>
           </div>
         </section>
@@ -273,7 +261,7 @@
 
           <div id="attendingBox" class="col hidden" style="width:100%;">
             <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
-              <label for="countSelect">How many in your party will attend?</label>
+              <label for="countSelect">Guests attending</label>
               <select id="countSelect"></select>
               <div class="help">Max: <span id="maxSeatsLabel">4</span></div>
             </div>
@@ -289,7 +277,7 @@
 
         <!-- TRANSPO -->
         <section id="stepTranspo" class="col hidden">
-          <div class="help" style="margin-top:0;">Will transportation be needed?</div>
+          <div class="help" style="margin-top:0;">Transportation needed?</div>
 
           <button class="choiceBtn" id="transpoYes" type="button">Yes</button>
           <button class="choiceBtn" id="transpoNo" type="button">No</button>
@@ -305,9 +293,9 @@
         <!-- PHONE -->
         <section id="stepPhone" class="col hidden">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
-            <label for="phoneInput">Phone number (Philippines)</label>
-            <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel" placeholder="09XX XXX XXXX" maxlength="13" />
-            <div class="help">Format: 09XX XXX XXXX</div>
+            <label for="phoneInput">Phone number</label>
+            <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel" placeholder="09XXXXXXXXX" maxlength="11" />
+            <div class="help">Type 11 digits (no spaces), starting with 09.</div>
             <div id="phoneErr" class="err hidden"></div>
           </div>
 
@@ -326,7 +314,7 @@
 
           <div class="footer">
             <button class="btn secondary" id="notesBackBtn" type="button">Back</button>
-            <button class="btn primary" id="submitBtn" type="button">Submit RSVP</button>
+            <button class="btn primary" id="submitBtn" type="button">Submit</button>
           </div>
 
           <div id="submitErr" class="err hidden"></div>
@@ -334,7 +322,7 @@
 
         <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
-          <div style="font-size:16px; font-weight:600;">Thanks, you’re all set.</div>
+          <div style="font-size:16px; font-weight:600;">You’re all set.</div>
           <div class="help" id="thanksLine">RSVP received.</div>
           <div class="contactLine" id="contactLine"></div>
 
@@ -345,7 +333,7 @@
 
         <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
-          <div style="font-size:16px; font-weight:600;">Got it. Thank you for letting us know.</div>
+          <div style="font-size:16px; font-weight:600;">Thank you.</div>
           <div class="help">Your response has been recorded.</div>
           <div class="contactLine" id="contactLine2"></div>
 
@@ -357,15 +345,14 @@
         <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
           <div style="font-size:16px; font-weight:600;">RSVP already received</div>
-          <div class="help">
-            If you need to update your RSVP, please contact Bianca &amp; Mars (or the coordinator).
-          </div>
+          <div class="help">To update, please contact Bianca &amp; Mars (or the coordinator).</div>
           <div class="contactLine" id="contactLine3"></div>
 
           <div class="footer">
             <button class="btn secondary" id="lockedCloseBtn" type="button">Close</button>
           </div>
         </section>
+
       </main>
     </div>
   </div>
@@ -375,7 +362,7 @@
       webAppUrl: "https://script.google.com/macros/s/AKfycbxNMaS4bQoEICGBUa6uH5qL4BOGjhK_f1CajHkSWJkgDe_tTrbAM0KyWHKQd0YKQ4BMxA/exec",
       maxSeatsCap: 4,
       contactLineText:
-        "If you already RSVP’d and need to update something, please contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
+        "Need to update your RSVP? Please contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
     };
 
     function $(id){ return document.getElementById(id); }
@@ -384,7 +371,6 @@
     function setText(el, txt){ el.textContent = txt; }
     function showErr(el, msg){ setText(el, msg); show(el); }
     function clearErr(el){ setText(el, ""); hide(el); }
-
     function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
 
     function titleCaseName_(s){
@@ -445,17 +431,16 @@
       var endScreens = (prev === "stepThanks" || prev === "stepDeclined" || prev === "stepLocked");
       setXVisible_(!endScreens);
 
-      if (prev === "stepFind") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Find your invite to get started."); }
-      if (prev === "stepPick") { setText($("headerTitle"), "Select your invite"); setText($("headerSubtitle"), "Choose the name that matches your invite."); }
-      if (prev === "stepComing") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Will you be attending?"); }
+      if (prev === "stepFind") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Enter your name to start."); }
+      if (prev === "stepPick") { setText($("headerTitle"), "Confirm"); setText($("headerSubtitle"), "Select your invite."); }
+      if (prev === "stepComing") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Attendance"); }
       if (prev === "stepTranspo") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Transportation"); }
-      if (prev === "stepPhone") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Contact number"); }
-      if (prev === "stepNotes") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Any notes?"); }
+      if (prev === "stepPhone") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Contact"); }
+      if (prev === "stepNotes") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Notes"); }
 
       window.scrollTo(0,0);
     }
 
-    // Client ID for rate limiting (stable)
     function getClientId_(){
       try {
         var k = "rsvp_client_id_v1";
@@ -470,13 +455,9 @@
     }
     var CLIENT_ID = getClientId_();
 
-    function getHoneypot_(){
-      return String($("hpInput").value || "").trim();
-    }
-
     function postJson(action, payload){
       var base = Object.assign(
-        { action: action, client_id: CLIENT_ID, hp: getHoneypot_() },
+        { action: action, client_id: CLIENT_ID, hp: String($("hpInput").value || "").trim() },
         payload || {}
       );
 
@@ -501,7 +482,6 @@
 
     function closeRSVP(){
       var targetOrigin = getParentOrigin_();
-
       if (window.parent && window.parent !== window) {
         try { window.parent.postMessage("RSVP:CLOSE", targetOrigin); }
         catch (e) { window.parent.postMessage("RSVP:CLOSE", "*"); }
@@ -514,46 +494,36 @@
       window.location.href = "/";
     }
 
-    /* Phone */
-    var phoneDigits = "";
+    /* Overlay double-click close (outside card) */
+    $("overlay").addEventListener("dblclick", function(e){
+      if (e && e.target === $("overlay")) closeRSVP();
+    });
+
+    /* Phone: guests type digits only, no spaces */
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
 
-    function formatPHVisible(d){
-      var x = (d || "");
-      if (x.indexOf("63") === 0 && x.length >= 12) x = "0" + x.slice(2);
-      x = x.slice(0, 11);
-      var a = x.slice(0, 4);
-      var b = x.slice(4, 7);
-      var c = x.slice(7, 11);
-      var out = a;
-      if (b.length) out += " " + b;
-      if (c.length) out += " " + c;
-      return out.trim();
-    }
-
-    function isValidPHVisible(visible){
-      return /^09\d{2}\s\d{3}\s\d{4}$/.test((visible || "").trim());
-    }
-
     function setPhoneFromInput(){
-      phoneDigits = digitsOnly($("phoneInput").value);
-      var visible = formatPHVisible(phoneDigits);
-      $("phoneInput").value = visible;
-      return visible;
+      var d = digitsOnly($("phoneInput").value).slice(0, 11);
+      $("phoneInput").value = d;
+      return d;
+    }
+
+    function isValidPHDigits(d){
+      return /^09\d{9}$/.test((d || "").trim());
     }
 
     function validatePhone(showMessage){
-      var visible = setPhoneFromInput();
-      if (!visible) {
+      var d = setPhoneFromInput();
+      if (!d) {
         if (showMessage) showErr($("phoneErr"), "Phone number is required.");
-        return { ok:false, kind:"required", visible:visible };
+        return { ok:false, kind:"required", digits:d };
       }
-      if (!isValidPHVisible(visible)) {
-        if (showMessage) showErr($("phoneErr"), "Phone number is invalid. Please use 09XX XXX XXXX.");
-        return { ok:false, kind:"invalid", visible:visible };
+      if (!isValidPHDigits(d)) {
+        if (showMessage) showErr($("phoneErr"), "Please type 11 digits starting with 09.");
+        return { ok:false, kind:"invalid", digits:d };
       }
       clearErr($("phoneErr"));
-      return { ok:true, kind:"ok", visible:visible };
+      return { ok:true, kind:"ok", digits:d };
     }
 
     var state = {
@@ -564,7 +534,7 @@
       attendingCount: 0,
       attendees: [],
       transportation: "",
-      phoneVisible: "",
+      phoneDigits: "",
       notes: ""
     };
 
@@ -593,11 +563,11 @@
         wrap.style.alignItems = "center";
 
         var lab = document.createElement("label");
-        lab.textContent = (i === 0) ? "Attendee full name" : ("Attendee " + (i+1) + " full name");
+        lab.textContent = (i === 0) ? "Guest name" : ("Guest " + (i+1) + " name");
 
         var inp = document.createElement("input");
         inp.type = "text";
-        inp.placeholder = "Type full name";
+        inp.placeholder = "Full name";
         inp.dataset.idx = String(i);
 
         inp.addEventListener("input", function(e){
@@ -632,9 +602,12 @@
       });
     }
 
+    function setPickSummary_(n){
+      setText($("pickSummary"), "We found " + n + " invite" + (n === 1 ? "" : "s") + ". Please tap your name.");
+    }
+
     function resetState(){
-      state = { matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
-      phoneDigits = "";
+      state = { matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneDigits:"", notes:"" };
       $("nameInput").value = "";
       $("notesInput").value = "";
       $("phoneInput").value = "";
@@ -653,14 +626,12 @@
 
       $("btnYes").classList.remove("active");
       $("btnNo").classList.remove("active");
-
       $("transpoYes").classList.remove("active");
       $("transpoNo").classList.remove("active");
-
       hide($("attendingBox"));
 
       navStack = [];
-      go("stepFind", "RSVP", "Find your invite to get started.", { noHistory: false });
+      go("stepFind", "RSVP", "Enter your name to start.", { noHistory: false });
     }
 
     function startFind(){
@@ -682,18 +653,15 @@
           state.matches = matches;
 
           if (matches.length === 0){
-            showErr($("findErr"), "No match found. Please check spelling or try a different name.");
+            showErr($("findErr"), "No match found. Please check spelling and try again.");
             return;
           }
 
-          if (matches.length === 1){
-            selectMatch(matches[0]);
-            return;
-          }
-
+          // Always require click-to-confirm (even 1 match)
+          setPickSummary_(matches.length);
           renderPickList(matches);
           clearErr($("pickErr"));
-          go("stepPick", "Select your invite", "Choose the name that matches your invite.");
+          go("stepPick", "Confirm", "Select your invite.");
         })
         .catch(function(){
           $("findBtn").disabled = false;
@@ -703,19 +671,19 @@
 
     function selectMatch(match){
       var inviteId = match.invite_id || match.id || match.key;
-      if (!inviteId){ showErr($("pickErr"), "This invite is missing an ID. Please try again."); return; }
+      if (!inviteId){ showErr($("pickErr"), "Missing invite ID. Please try again."); return; }
 
       state.inviteId = inviteId;
 
       postJson("get", { invite_id: inviteId })
         .then(function(res){
           if (!res || res.ok === false){
-            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load invite. Please try again.");
+            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load. Please try again.");
             return;
           }
 
           if (res.locked){
-            go("stepLocked", "RSVP", "RSVP already received.");
+            go("stepLocked", "RSVP", "Already received.");
             return;
           }
 
@@ -746,7 +714,7 @@
             buildAttendeeInputs(1);
           }
 
-          go("stepComing", "RSVP", "Will you be attending?");
+          go("stepComing", "RSVP", "Attendance");
         })
         .catch(function(){
           showErr($("pickErr"), "Network error. Please try again.");
@@ -777,15 +745,12 @@
         chosen = Math.max(1, Math.min(chosen, maxSeats));
         state.attendingCount = chosen;
 
-        var missing = [];
         for (var i = 0; i < state.attendingCount; i++){
-          var v = titleCaseName_(state.attendees[i]);
-          state.attendees[i] = v;
-          if (!v) missing.push(i+1);
-        }
-        if (missing.length){
-          showErr($("comingErr"), "Please enter attendee name" + (missing.length > 1 ? "s" : "") + ".");
-          return;
+          state.attendees[i] = titleCaseName_(state.attendees[i]);
+          if (!state.attendees[i]) {
+            showErr($("comingErr"), "Please enter all guest names.");
+            return;
+          }
         }
       }
 
@@ -798,14 +763,14 @@
         showErr($("transpoErr"), "Please select Yes or No.");
         return;
       }
-      go("stepPhone", "RSVP", "Contact number");
+      go("stepPhone", "RSVP", "Contact");
     }
 
     function phoneNext(){
       var v = validatePhone(true);
       if (!v.ok) return;
-      state.phoneVisible = v.visible;
-      go("stepNotes", "RSVP", "Any notes?");
+      state.phoneDigits = v.digits;
+      go("stepNotes", "RSVP", "Notes");
     }
 
     function submitRSVP(){
@@ -820,15 +785,12 @@
 
         var v = validatePhone(true);
         if (!v.ok){
-          showErr($("submitErr"), v.kind === "required"
-            ? "Phone number is required. Please go back and enter 09XX XXX XXXX."
-            : "Phone number is invalid. Please go back and use 09XX XXX XXXX."
-          );
+          showErr($("submitErr"), "Please enter a valid phone number.");
           return;
         }
-        state.phoneVisible = v.visible;
+        state.phoneDigits = v.digits;
       } else {
-        state.phoneVisible = "";
+        state.phoneDigits = "";
       }
 
       state.notes = normalizeSpaces_($("notesInput").value);
@@ -837,7 +799,7 @@
         invite_id: state.inviteId,
         status: state.status,
         attending_count: state.status === "Attending" ? state.attendingCount : 0,
-        phone: state.phoneVisible || "",
+        phone: state.phoneDigits || "",
         transportation: state.status === "Attending" ? (state.transportation || "") : "",
         notes: state.notes || "",
         attendees: state.status === "Attending" ? state.attendees.slice(0, state.attendingCount) : []
@@ -857,17 +819,17 @@
           }
 
           if (res.locked){
-            go("stepLocked", "RSVP", "RSVP already received.");
+            go("stepLocked", "RSVP", "Already received.");
             return;
           }
 
           if (state.status === "Declined"){
-            go("stepDeclined", "RSVP", "Response recorded.");
+            go("stepDeclined", "RSVP", "Recorded.");
             return;
           }
 
-          setText($("thanksLine"), "RSVP received for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests."));
-          go("stepThanks", "RSVP", "Response recorded.");
+          setText($("thanksLine"), "Recorded for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests."));
+          go("stepThanks", "RSVP", "Recorded.");
         })
         .catch(function(){
           $("submitBtn").disabled = false;
@@ -876,22 +838,30 @@
         });
     }
 
-    // Bind events
+    // Close buttons
     $("xBtn").addEventListener("click", closeRSVP);
     $("thanksCloseBtn").addEventListener("click", closeRSVP);
     $("declineCloseBtn").addEventListener("click", closeRSVP);
     $("lockedCloseBtn").addEventListener("click", closeRSVP);
 
-    // ESC close (inside iframe)
+    // ESC close
     window.addEventListener("keydown", function(e){
-      if (!e) return;
-      if (e.key === "Escape") closeRSVP();
+      if (e && e.key === "Escape") closeRSVP();
     });
 
+    // Step navigation
     $("findBtn").addEventListener("click", startFind);
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
     $("pickBackBtn").addEventListener("click", goBackOne);
+    $("pickNotMeBtn").addEventListener("click", function(){
+      $("nameInput").value = "";
+      clearErr($("pickErr"));
+      navStack = [];
+      go("stepFind", "RSVP", "Enter your name to start.", { noHistory:false });
+      $("nameInput").focus();
+    });
+
     $("comingBackBtn").addEventListener("click", goBackOne);
     $("transpoBackBtn").addEventListener("click", goBackOne);
     $("phoneBackBtn").addEventListener("click", goBackOne);
@@ -962,6 +932,12 @@
 
     $("submitBtn").addEventListener("click", submitRSVP);
 
+    // Contact lines
+    setText($("contactLine"), CONFIG.contactLineText);
+    setText($("contactLine2"), CONFIG.contactLineText);
+    setText($("contactLine3"), CONFIG.contactLineText);
+
+    // Start
     resetState();
   </script>
 </body>
