@@ -173,7 +173,6 @@
       cursor: not-allowed;
     }
 
-    /* Unified secondary "choice" buttons (matches, yes/no, transpo, etc.) */
     .choiceBtn{
       width: min(320px, 100%);
       border-radius: 14px;
@@ -208,6 +207,16 @@
       text-align: center;
       max-width: 420px;
     }
+
+    /* Honeypot: must be visually hidden but still in DOM */
+    .hpWrap{
+      position:absolute;
+      left:-10000px;
+      top:auto;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
   </style>
 </head>
 
@@ -217,12 +226,16 @@
       <header>
         <h1 class="title" id="headerTitle">RSVP</h1>
         <p class="subtitle" id="headerSubtitle">Find your invite to get started.</p>
-
-        <!-- Sticky X (hidden on end screens) -->
         <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
       </header>
 
       <main>
+        <!-- HONEYPOT -->
+        <div class="hpWrap" aria-hidden="true">
+          <label for="hpInput">Leave this blank</label>
+          <input id="hpInput" type="text" autocomplete="off" tabindex="-1" />
+        </div>
+
         <!-- FIND -->
         <section id="stepFind" class="col">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -258,7 +271,6 @@
             <div id="comingErr" class="err hidden"></div>
           </div>
 
-          <!-- Attending details (hidden entirely for single-seat invites) -->
           <div id="attendingBox" class="col hidden" style="width:100%;">
             <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
               <label for="countSelect">How many in your party will attend?</label>
@@ -275,7 +287,7 @@
           </div>
         </section>
 
-        <!-- TRANSPO (Yes/No only) -->
+        <!-- TRANSPO -->
         <section id="stepTranspo" class="col hidden">
           <div class="help" style="margin-top:0;">Will transportation be needed?</div>
 
@@ -320,7 +332,7 @@
           <div id="submitErr" class="err hidden"></div>
         </section>
 
-        <!-- THANKS (end screen: NO X, close button bottom) -->
+        <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
           <div style="font-size:16px; font-weight:600;">Thanks, you’re all set.</div>
           <div class="help" id="thanksLine">RSVP received.</div>
@@ -331,7 +343,7 @@
           </div>
         </section>
 
-        <!-- DECLINED (end screen: NO X, close button bottom) -->
+        <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
           <div style="font-size:16px; font-weight:600;">Got it. Thank you for letting us know.</div>
           <div class="help">Your response has been recorded.</div>
@@ -342,7 +354,7 @@
           </div>
         </section>
 
-        <!-- LOCKED (end screen: NO X, close button bottom) -->
+        <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
           <div style="font-size:16px; font-weight:600;">RSVP already received</div>
           <div class="help">
@@ -354,7 +366,6 @@
             <button class="btn secondary" id="lockedCloseBtn" type="button">Close</button>
           </div>
         </section>
-
       </main>
     </div>
   </div>
@@ -376,7 +387,6 @@
 
     function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
 
-    // Title Case per word, keeps hyphens + apostrophes
     function titleCaseName_(s){
       s = normalizeSpaces_(s).toLowerCase();
       var out = "";
@@ -407,7 +417,6 @@
       else $("xBtn").classList.add("xHidden");
     }
 
-    // History stack for true "back one screen"
     var navStack = [];
 
     function go(stepId, title, subtitle, options){
@@ -427,20 +436,15 @@
     }
 
     function goBackOne(){
-      // remove current
       if (navStack.length > 0) navStack.pop();
-
-      // go to previous
       var prev = navStack.length ? navStack[navStack.length - 1] : "stepFind";
 
-      // render without pushing history
       hideAllSteps();
       show($(prev));
 
       var endScreens = (prev === "stepThanks" || prev === "stepDeclined" || prev === "stepLocked");
       setXVisible_(!endScreens);
 
-      // set header text per screen
       if (prev === "stepFind") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Find your invite to get started."); }
       if (prev === "stepPick") { setText($("headerTitle"), "Select your invite"); setText($("headerSubtitle"), "Choose the name that matches your invite."); }
       if (prev === "stepComing") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Will you be attending?"); }
@@ -451,12 +455,35 @@
       window.scrollTo(0,0);
     }
 
-    // Avoid CORS preflight for Apps Script by using text/plain
+    // Client ID for rate limiting (stable)
+    function getClientId_(){
+      try {
+        var k = "rsvp_client_id_v1";
+        var v = localStorage.getItem(k);
+        if (v) return v;
+        v = "c_" + Math.random().toString(16).slice(2) + "_" + Date.now();
+        localStorage.setItem(k, v);
+        return v;
+      } catch (e) {
+        return "anon";
+      }
+    }
+    var CLIENT_ID = getClientId_();
+
+    function getHoneypot_(){
+      return String($("hpInput").value || "").trim();
+    }
+
     function postJson(action, payload){
+      var base = Object.assign(
+        { action: action, client_id: CLIENT_ID, hp: getHoneypot_() },
+        payload || {}
+      );
+
       return fetch(CONFIG.webAppUrl, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+        body: JSON.stringify(base)
       }).then(function(r){
         return r.text().then(function(t){
           try { return JSON.parse(t); }
@@ -465,9 +492,19 @@
       });
     }
 
+    function getParentOrigin_(){
+      try {
+        if (document.referrer) return new URL(document.referrer).origin;
+      } catch (e) {}
+      return "*";
+    }
+
     function closeRSVP(){
+      var targetOrigin = getParentOrigin_();
+
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage("RSVP:CLOSE", "*");
+        try { window.parent.postMessage("RSVP:CLOSE", targetOrigin); }
+        catch (e) { window.parent.postMessage("RSVP:CLOSE", "*"); }
         return;
       }
       if (window.opener && !window.opener.closed) {
@@ -477,9 +514,8 @@
       window.location.href = "/";
     }
 
-    /* Phone v3 (store visible 09XX XXX XXXX) */
+    /* Phone */
     var phoneDigits = "";
-
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
 
     function formatPHVisible(d){
@@ -583,11 +619,6 @@
       state.attendees = new Array(n).fill("");
     }
 
-    function setChoiceActive(btnA, btnB, activeA){
-      btnA.classList.toggle("active", !!activeA);
-      btnB.classList.toggle("active", !activeA);
-    }
-
     function renderPickList(matches){
       var list = $("pickList");
       list.innerHTML = "";
@@ -607,6 +638,7 @@
       $("nameInput").value = "";
       $("notesInput").value = "";
       $("phoneInput").value = "";
+      $("hpInput").value = "";
 
       clearErr($("findErr"));
       clearErr($("pickErr"));
@@ -689,11 +721,11 @@
 
           state.selected = res.invite || match;
 
-          // Configure seats
           var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+          maxSeats = Math.max(1, maxSeats);
+
           buildCountSelect(maxSeats);
 
-          // Reset selection state for coming/transpo
           state.status = null;
           $("btnYes").classList.remove("active");
           $("btnNo").classList.remove("active");
@@ -704,13 +736,11 @@
           $("transpoNo").classList.remove("active");
           clearErr($("transpoErr"));
 
-          // Single-seat invites: do not ask for attendee full name
           if (maxSeats <= 1) {
             hide($("attendingBox"));
             state.attendingCount = 1;
             state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
           } else {
-            // Multi-seat: show party size + attendee names
             show($("attendingBox"));
             state.attendingCount = 1;
             buildAttendeeInputs(1);
@@ -737,13 +767,15 @@
       }
 
       var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+      maxSeats = Math.max(1, maxSeats);
 
-      // Single-seat: auto-fill attendee name already prepared
       if (maxSeats <= 1) {
         state.attendingCount = 1;
         state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
       } else {
-        state.attendingCount = parseInt($("countSelect").value, 10) || 1;
+        var chosen = parseInt($("countSelect").value, 10) || 1;
+        chosen = Math.max(1, Math.min(chosen, maxSeats));
+        state.attendingCount = chosen;
 
         var missing = [];
         for (var i = 0; i < state.attendingCount; i++){
@@ -779,9 +811,12 @@
     function submitRSVP(){
       clearErr($("submitErr"));
 
+      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+      maxSeats = Math.max(1, maxSeats);
+
       if (state.status === "Attending"){
-        // Ensure attendee names are title-cased before sending
-        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); });
+        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); }).filter(Boolean);
+        state.attendingCount = Math.max(1, Math.min(state.attendingCount || 1, maxSeats, state.attendees.length || 1));
 
         var v = validatePhone(true);
         if (!v.ok){
@@ -847,6 +882,12 @@
     $("declineCloseBtn").addEventListener("click", closeRSVP);
     $("lockedCloseBtn").addEventListener("click", closeRSVP);
 
+    // ESC close (inside iframe)
+    window.addEventListener("keydown", function(e){
+      if (!e) return;
+      if (e.key === "Escape") closeRSVP();
+    });
+
     $("findBtn").addEventListener("click", startFind);
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
@@ -863,6 +904,7 @@
       clearErr($("comingErr"));
 
       var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+      maxSeats = Math.max(1, maxSeats);
 
       if (maxSeats <= 1) {
         hide($("attendingBox"));
@@ -871,6 +913,7 @@
       } else {
         show($("attendingBox"));
         state.attendingCount = parseInt($("countSelect").value, 10) || 1;
+        state.attendingCount = Math.max(1, Math.min(state.attendingCount, maxSeats));
         buildAttendeeInputs(state.attendingCount);
       }
     });
@@ -884,7 +927,11 @@
     });
 
     $("countSelect").addEventListener("change", function(){
+      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
+      maxSeats = Math.max(1, maxSeats);
+
       var n = parseInt($("countSelect").value, 10) || 1;
+      n = Math.max(1, Math.min(n, maxSeats));
       state.attendingCount = n;
       buildAttendeeInputs(n);
     });
