@@ -6,6 +6,14 @@
   <title>RSVP</title>
 
   <style>
+    @font-face{
+      font-family: "Mr1";
+      src: url("https://marsnbianca.github.io/rsvp/fonts/Mr1-Regular.otf") format("opentype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root{
       --bg: rgba(15, 15, 20, 0.55);
       --card: #ffffff;
@@ -41,6 +49,9 @@
       background: transparent;
       color: var(--text);
       text-align: center;
+
+      /* default: 10% closer (slightly tighter) */
+      letter-spacing: -0.01em;
     }
 
     #overlay{
@@ -74,8 +85,11 @@
       margin:0;
       font-size: 18px;
       line-height: 1.2;
-      letter-spacing: .2px;
+      /* 10% closer than normal */
+      letter-spacing: -0.02em;
       padding: 0 44px;
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
 
     .subtitle{
@@ -84,6 +98,7 @@
       font-size: 13px;
       line-height: 1.35;
       padding: 0 44px;
+      letter-spacing: -0.01em;
     }
 
     .xBtn{
@@ -129,6 +144,7 @@
       background: #fff;
       color: var(--text);
       text-align: center;
+      letter-spacing: -0.01em;
     }
 
     textarea{ min-height: 96px; resize: vertical; }
@@ -140,6 +156,7 @@
       line-height: 1.35;
       text-align: center;
       max-width: 420px;
+      letter-spacing: -0.01em;
     }
 
     .err{
@@ -149,6 +166,7 @@
       line-height: 1.35;
       text-align: center;
       max-width: 420px;
+      letter-spacing: -0.01em;
     }
 
     .hidden{ display:none !important; }
@@ -164,6 +182,7 @@
       user-select: none;
       white-space: nowrap;
       transition: background 160ms ease, transform 120ms ease, opacity 160ms ease;
+      letter-spacing: -0.01em;
     }
     .btn:active{ transform: translateY(1px); }
 
@@ -197,6 +216,7 @@
       text-align: center;
       display: block;
       transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 120ms ease;
+      letter-spacing: -0.01em;
     }
     .choiceBtn:hover{ background: var(--choiceHover); }
     .choiceBtn:active{ transform: translateY(1px); }
@@ -222,6 +242,7 @@
       line-height: 1.4;
       text-align: center;
       max-width: 420px;
+      letter-spacing: -0.01em;
     }
 
     #loadingMask{
@@ -256,8 +277,8 @@
       </div>
 
       <header>
-        <h1 class="title" id="headerTitle">RSVP</h1>
-        <p class="subtitle" id="headerSubtitle">Type your name to begin.</p>
+        <h1 class="title" id="headerTitle">M+B</h1>
+        <p class="subtitle" id="headerSubtitle">Oct 15, 2027</p>
         <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
       </header>
 
@@ -312,7 +333,6 @@
             <div id="comingErr" class="err hidden"></div>
           </div>
 
-          <!-- Party size (only if max_seats > 1 AND after clicking Yes) -->
           <div id="partyCountBox" class="col hidden" style="width:100%;">
             <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
               <label for="countSelect">How many are coming?</label>
@@ -320,7 +340,6 @@
             </div>
           </div>
 
-          <!-- Guest names (only after party size selected) -->
           <div id="guestNamesBox" class="col hidden" style="width:100%;">
             <div id="attendeeInputs" class="col" style="width:100%;"></div>
           </div>
@@ -467,15 +486,12 @@
 
     var navStack = [];
 
-    function go(stepId, title, subtitle, options){
+    function go(stepId, options){
       options = options || {};
       if (!options.noHistory) navStack.push(stepId);
 
       hideAllSteps();
       show($(stepId));
-
-      if (title) setText($("headerTitle"), title);
-      if (subtitle) setText($("headerSubtitle"), subtitle);
 
       var endScreens = (stepId === "stepThanks" || stepId === "stepDeclined" || stepId === "stepLocked" || stepId === "stepContact");
       setXVisible_(!endScreens);
@@ -492,13 +508,6 @@
 
       var endScreens = (prev === "stepThanks" || prev === "stepDeclined" || prev === "stepLocked" || prev === "stepContact");
       setXVisible_(!endScreens);
-
-      if (prev === "stepFind") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Type your name to begin."); }
-      if (prev === "stepPick") { setText($("headerTitle"), "Confirm"); setText($("headerSubtitle"), "Select your invite."); }
-      if (prev === "stepComing") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Attendance"); }
-      if (prev === "stepTranspo") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Transportation"); }
-      if (prev === "stepPhone") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Contact"); }
-      if (prev === "stepNotes") { setText($("headerTitle"), "RSVP"); setText($("headerSubtitle"), "Notes"); }
 
       window.scrollTo(0,0);
     }
@@ -565,7 +574,6 @@
       if (e && e.target === $("overlay")) closeRSVP();
     });
 
-    /* Phone: show with spaces, accept without spaces */
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
 
     function formatPHVisibleFromDigits(d){
@@ -734,7 +742,7 @@
       setText($("contactLineContact"), CONFIG.contactLineText);
 
       navStack = [];
-      go("stepFind", "RSVP", "Type your name to begin.", { noHistory: false });
+      go("stepFind", { noHistory: false });
     }
 
     function startFind(){
@@ -761,7 +769,7 @@
           setPickSummary_(matches.length);
           renderPickList(matches);
           clearErr($("pickErr"));
-          go("stepPick", "Confirm", "Select your invite.");
+          go("stepPick");
         })
         .catch(function(){
           $("findBtn").disabled = false;
@@ -783,7 +791,7 @@
           }
 
           if (res.locked){
-            go("stepLocked", "RSVP", "Already received.");
+            go("stepLocked");
             return;
           }
 
@@ -794,8 +802,7 @@
           state.maxSeats = maxSeats;
 
           resetComingUI_();
-
-          go("stepComing", "RSVP", "Attendance");
+          go("stepComing");
         })
         .catch(function(){
           showErr($("pickErr"), "Network error. Please try again.");
@@ -809,7 +816,6 @@
       $("btnNo").classList.remove("active");
       clearErr($("comingErr"));
 
-      // Single-seat: auto attendee name = invite name, skip party size + inputs
       if (state.maxSeats <= 1) {
         hide($("partyCountBox"));
         hide($("guestNamesBox"));
@@ -819,7 +825,6 @@
         return;
       }
 
-      // Party: show count first, but do NOT show guest inputs until count chosen
       show($("partyCountBox"));
       hide($("guestNamesBox"));
 
@@ -861,19 +866,15 @@
       }
 
       if (state.status === "Declined") {
-        // immediate submit, then show declined screen
         submitRSVP();
         return;
       }
 
-      // Attending
       if (state.maxSeats <= 1) {
-        // already auto-filled
-        go("stepTranspo", "RSVP", "Transportation");
+        go("stepTranspo");
         return;
       }
 
-      // Party: must pick count and fill names
       if (!state.attendingCount || state.attendingCount < 1) {
         showErr($("comingErr"), "Please select how many are coming.");
         return;
@@ -887,7 +888,7 @@
         }
       }
 
-      go("stepTranspo", "RSVP", "Transportation");
+      go("stepTranspo");
     }
 
     function transpoNext(){
@@ -896,21 +897,20 @@
         showErr($("transpoErr"), "Please select Yes or No.");
         return;
       }
-      go("stepPhone", "RSVP", "Contact");
+      go("stepPhone");
     }
 
     function phoneNext(){
       var v = validatePhone(true);
       if (!v.ok) return;
       state.phoneVisible = v.visible;
-      go("stepNotes", "RSVP", "Notes");
+      go("stepNotes");
     }
 
     function submitRSVP(){
       clearErr($("submitErr"));
 
       if (state.status === "Attending"){
-        // Ensure single-seat is still filled
         if (state.maxSeats <= 1) {
           state.attendingCount = 1;
           state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
@@ -957,17 +957,17 @@
           }
 
           if (res.locked){
-            go("stepLocked", "RSVP", "Already received.");
+            go("stepLocked");
             return;
           }
 
           if (state.status === "Declined"){
-            go("stepDeclined", "RSVP", "Recorded.");
+            go("stepDeclined");
             return;
           }
 
           setText($("thanksLine"), "Recorded for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests."));
-          go("stepThanks", "RSVP", "Recorded.");
+          go("stepThanks");
         })
         .catch(function(){
           $("submitBtn").disabled = false;
@@ -976,7 +976,6 @@
         });
     }
 
-    // Close
     $("xBtn").addEventListener("click", closeRSVP);
     $("thanksCloseBtn").addEventListener("click", closeRSVP);
     $("declineCloseBtn").addEventListener("click", closeRSVP);
@@ -987,18 +986,15 @@
       if (e && e.key === "Escape") closeRSVP();
     });
 
-    // Find
     $("findBtn").addEventListener("click", startFind);
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
-    // Pick
     $("pickBackBtn").addEventListener("click", goBackOne);
     $("pickNotMeBtn").addEventListener("click", function(){
       navStack = [];
-      go("stepContact", "RSVP", "Help", { noHistory:false });
+      go("stepContact", { noHistory:false });
     });
 
-    // Coming
     $("comingBackBtn").addEventListener("click", goBackOne);
     $("comingNextBtn").addEventListener("click", comingNext);
 
@@ -1007,7 +1003,6 @@
 
     $("countSelect").addEventListener("change", onPartyCountChange_);
 
-    // Transpo
     $("transpoBackBtn").addEventListener("click", goBackOne);
     $("transpoYes").addEventListener("click", function(){
       state.transportation = "Yes";
@@ -1023,7 +1018,6 @@
     });
     $("transpoNextBtn").addEventListener("click", transpoNext);
 
-    // Phone
     $("phoneBackBtn").addEventListener("click", goBackOne);
     $("phoneInput").addEventListener("input", function(){
       setPhoneFromInput();
@@ -1032,11 +1026,9 @@
     $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
     $("phoneNextBtn").addEventListener("click", phoneNext);
 
-    // Notes
     $("notesBackBtn").addEventListener("click", goBackOne);
     $("submitBtn").addEventListener("click", submitRSVP);
 
-    // Contact lines
     setText($("contactLine"), CONFIG.contactLineText);
     setText($("contactLine2"), CONFIG.contactLineText);
     setText($("contactLine3"), CONFIG.contactLineText);
