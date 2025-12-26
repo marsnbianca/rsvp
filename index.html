@@ -15,7 +15,6 @@
       --shadow: 0 24px 80px rgba(0,0,0,.18);
       --radius: 18px;
 
-      /* Distinct button palettes */
       --primary: #111827;
       --primaryText: #ffffff;
       --primaryHover: #0b1220;
@@ -24,7 +23,6 @@
       --secondaryText: #111827;
       --secondaryHover: #e5e7eb;
 
-      /* Choice buttons (selectable) */
       --choiceBg: #ffffff;
       --choiceText: #111827;
       --choiceBorder: #e5e7eb;
@@ -110,7 +108,6 @@
     .xHidden{ display:none !important; }
 
     main{ padding: 16px 18px 18px; }
-
     .col{ display:flex; flex-direction: column; gap: 12px; align-items: center; }
 
     label{
@@ -227,7 +224,6 @@
       max-width: 420px;
     }
 
-    /* Loading overlay */
     #loadingMask{
       position: absolute;
       inset: 0;
@@ -266,7 +262,6 @@
       </header>
 
       <main>
-        <!-- honeypot (hidden) -->
         <input id="hpInput" type="text" tabindex="-1" autocomplete="off" style="display:none;" />
 
         <!-- FIND -->
@@ -295,7 +290,7 @@
           </div>
         </section>
 
-        <!-- CONTACT (Not me) -->
+        <!-- CONTACT -->
         <section id="stepContact" class="col hidden">
           <div style="font-size:16px; font-weight:600;">Can’t find your invite?</div>
           <div class="help">Please contact Bianca &amp; Mars (or the coordinator) so we can help.</div>
@@ -317,13 +312,16 @@
             <div id="comingErr" class="err hidden"></div>
           </div>
 
-          <div id="attendingBox" class="col hidden" style="width:100%;">
+          <!-- Party size (only if max_seats > 1 AND after clicking Yes) -->
+          <div id="partyCountBox" class="col hidden" style="width:100%;">
             <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
-              <label for="countSelect">Guests attending</label>
+              <label for="countSelect">How many are coming?</label>
               <select id="countSelect"></select>
-              <div class="help">Max: <span id="maxSeatsLabel">4</span></div>
             </div>
+          </div>
 
+          <!-- Guest names (only after party size selected) -->
+          <div id="guestNamesBox" class="col hidden" style="width:100%;">
             <div id="attendeeInputs" class="col" style="width:100%;"></div>
           </div>
 
@@ -393,7 +391,7 @@
         <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
           <div style="font-size:16px; font-weight:700;">Thank you!</div>
-          <div class="help">Your response has been recorded.</div>
+          <div class="help">We’ll miss you — sorry we won’t see you there.</div>
           <div class="contactLine" id="contactLine2"></div>
 
           <div class="footer">
@@ -411,7 +409,6 @@
             <button class="btn secondary" id="lockedCloseBtn" type="button">Close</button>
           </div>
         </section>
-
       </main>
     </div>
   </div>
@@ -564,12 +561,11 @@
       window.location.href = "/";
     }
 
-    /* Double-click outside closes (overlay area only) */
     $("overlay").addEventListener("dblclick", function(e){
       if (e && e.target === $("overlay")) closeRSVP();
     });
 
-    /* Phone: display with spaces, accept without spaces */
+    /* Phone: show with spaces, accept without spaces */
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
 
     function formatPHVisibleFromDigits(d){
@@ -589,7 +585,6 @@
 
     function setPhoneFromInput(){
       var d = digitsOnly($("phoneInput").value);
-      // allow +63 / 63 entry
       if (d.indexOf("63") === 0 && d.length >= 12) d = "0" + d.slice(2);
       if (d.indexOf("9") === 0 && d.length === 10) d = "0" + d;
 
@@ -618,6 +613,7 @@
       selected: null,
       inviteId: null,
       status: null,
+      maxSeats: 1,
       attendingCount: 0,
       attendees: [],
       transportation: "",
@@ -628,8 +624,7 @@
     function buildCountSelect(max){
       var sel = $("countSelect");
       sel.innerHTML = "";
-      var cap = Math.max(1, Math.min(CONFIG.maxSeatsCap, max || CONFIG.maxSeatsCap));
-      setText($("maxSeatsLabel"), String(cap));
+      var cap = Math.max(2, Math.min(CONFIG.maxSeatsCap, max || CONFIG.maxSeatsCap));
       for (var i = 1; i <= cap; i++){
         var opt = document.createElement("option");
         opt.value = String(i);
@@ -684,18 +679,16 @@
       var list = $("pickList");
       list.innerHTML = "";
 
-      matches.forEach(function(m, idx){
+      matches.forEach(function(m){
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "choiceBtn";
         btn.textContent = m.display_name || m.name || "Select";
 
         btn.addEventListener("click", function(){
-          // mark active (visual)
           var buttons = list.querySelectorAll(".choiceBtn");
           for (var i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
           btn.classList.add("active");
-
           selectMatch(m);
         });
 
@@ -703,8 +696,23 @@
       });
     }
 
+    function resetComingUI_(){
+      state.status = null;
+      state.attendingCount = 0;
+      state.attendees = [];
+      $("btnYes").classList.remove("active");
+      $("btnNo").classList.remove("active");
+      clearErr($("comingErr"));
+
+      hide($("partyCountBox"));
+      hide($("guestNamesBox"));
+      $("countSelect").innerHTML = "";
+      $("attendeeInputs").innerHTML = "";
+    }
+
     function resetState(){
-      state = { matches:[], selected:null, inviteId:null, status:null, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
+      state = { matches:[], selected:null, inviteId:null, status:null, maxSeats:1, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
+
       $("nameInput").value = "";
       $("notesInput").value = "";
       $("phoneInput").value = "";
@@ -717,16 +725,13 @@
       clearErr($("phoneErr"));
       clearErr($("submitErr"));
 
+      $("transpoYes").classList.remove("active");
+      $("transpoNo").classList.remove("active");
+
       setText($("contactLine"), CONFIG.contactLineText);
       setText($("contactLine2"), CONFIG.contactLineText);
       setText($("contactLine3"), CONFIG.contactLineText);
       setText($("contactLineContact"), CONFIG.contactLineText);
-
-      $("btnYes").classList.remove("active");
-      $("btnNo").classList.remove("active");
-      $("transpoYes").classList.remove("active");
-      $("transpoNo").classList.remove("active");
-      hide($("attendingBox"));
 
       navStack = [];
       go("stepFind", "RSVP", "Type your name to begin.", { noHistory: false });
@@ -748,9 +753,7 @@
           }
 
           var matches = res.matches || [];
-          state.matches = matches;
-
-          if (matches.length === 0){
+          if (!matches.length){
             showErr($("findErr"), "No match found. Please try a different name.");
             return;
           }
@@ -786,36 +789,67 @@
 
           state.selected = res.invite || match;
 
-          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
-          maxSeats = Math.max(1, maxSeats);
+          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
+          maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
+          state.maxSeats = maxSeats;
 
-          buildCountSelect(maxSeats);
-
-          state.status = null;
-          $("btnYes").classList.remove("active");
-          $("btnNo").classList.remove("active");
-          clearErr($("comingErr"));
-
-          state.transportation = "";
-          $("transpoYes").classList.remove("active");
-          $("transpoNo").classList.remove("active");
-          clearErr($("transpoErr"));
-
-          if (maxSeats <= 1) {
-            hide($("attendingBox"));
-            state.attendingCount = 1;
-            state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
-          } else {
-            show($("attendingBox"));
-            state.attendingCount = 1;
-            buildAttendeeInputs(1);
-          }
+          resetComingUI_();
 
           go("stepComing", "RSVP", "Attendance");
         })
         .catch(function(){
           showErr($("pickErr"), "Network error. Please try again.");
         });
+    }
+
+    function setYesFlow_(){
+      state.status = "Attending";
+
+      $("btnYes").classList.add("active");
+      $("btnNo").classList.remove("active");
+      clearErr($("comingErr"));
+
+      // Single-seat: auto attendee name = invite name, skip party size + inputs
+      if (state.maxSeats <= 1) {
+        hide($("partyCountBox"));
+        hide($("guestNamesBox"));
+
+        state.attendingCount = 1;
+        state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
+        return;
+      }
+
+      // Party: show count first, but do NOT show guest inputs until count chosen
+      show($("partyCountBox"));
+      hide($("guestNamesBox"));
+
+      buildCountSelect(state.maxSeats);
+
+      state.attendingCount = 0;
+      state.attendees = [];
+    }
+
+    function setNoFlow_(){
+      state.status = "Declined";
+
+      $("btnNo").classList.add("active");
+      $("btnYes").classList.remove("active");
+      clearErr($("comingErr"));
+
+      hide($("partyCountBox"));
+      hide($("guestNamesBox"));
+
+      state.attendingCount = 0;
+      state.attendees = [];
+    }
+
+    function onPartyCountChange_(){
+      var n = parseInt($("countSelect").value, 10) || 1;
+      n = Math.max(1, Math.min(n, state.maxSeats));
+
+      state.attendingCount = n;
+      show($("guestNamesBox"));
+      buildAttendeeInputs(n);
     }
 
     function comingNext(){
@@ -826,28 +860,30 @@
         return;
       }
 
-      if (state.status === "Declined"){
+      if (state.status === "Declined") {
+        // immediate submit, then show declined screen
         submitRSVP();
         return;
       }
 
-      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
-      maxSeats = Math.max(1, maxSeats);
+      // Attending
+      if (state.maxSeats <= 1) {
+        // already auto-filled
+        go("stepTranspo", "RSVP", "Transportation");
+        return;
+      }
 
-      if (maxSeats <= 1) {
-        state.attendingCount = 1;
-        state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
-      } else {
-        var chosen = parseInt($("countSelect").value, 10) || 1;
-        chosen = Math.max(1, Math.min(chosen, maxSeats));
-        state.attendingCount = chosen;
+      // Party: must pick count and fill names
+      if (!state.attendingCount || state.attendingCount < 1) {
+        showErr($("comingErr"), "Please select how many are coming.");
+        return;
+      }
 
-        for (var i = 0; i < state.attendingCount; i++){
-          state.attendees[i] = titleCaseName_(state.attendees[i]);
-          if (!state.attendees[i]) {
-            showErr($("comingErr"), "Please enter all guest names.");
-            return;
-          }
+      for (var i = 0; i < state.attendingCount; i++){
+        state.attendees[i] = titleCaseName_(state.attendees[i]);
+        if (!state.attendees[i]) {
+          showErr($("comingErr"), "Please enter all guest names.");
+          return;
         }
       }
 
@@ -873,21 +909,26 @@
     function submitRSVP(){
       clearErr($("submitErr"));
 
-      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
-      maxSeats = Math.max(1, maxSeats);
-
       if (state.status === "Attending"){
-        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); }).filter(Boolean);
-        state.attendingCount = Math.max(1, Math.min(state.attendingCount || 1, maxSeats, state.attendees.length || 1));
+        // Ensure single-seat is still filled
+        if (state.maxSeats <= 1) {
+          state.attendingCount = 1;
+          state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
+        }
 
-        var v = validatePhone(true);
-        if (!v.ok){
+        var pv = validatePhone(true);
+        if (!pv.ok){
           showErr($("submitErr"), "Please enter a valid phone number.");
           return;
         }
-        state.phoneVisible = v.visible;
+        state.phoneVisible = pv.visible;
+
+        state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); }).filter(Boolean);
+        state.attendingCount = Math.max(1, Math.min(state.attendingCount || 1, state.maxSeats, state.attendees.length || 1));
       } else {
         state.phoneVisible = "";
+        state.attendingCount = 0;
+        state.attendees = [];
       }
 
       state.notes = normalizeSpaces_($("notesInput").value);
@@ -935,101 +976,64 @@
         });
     }
 
-    // Close buttons
+    // Close
     $("xBtn").addEventListener("click", closeRSVP);
     $("thanksCloseBtn").addEventListener("click", closeRSVP);
     $("declineCloseBtn").addEventListener("click", closeRSVP);
     $("lockedCloseBtn").addEventListener("click", closeRSVP);
     $("contactCloseBtn").addEventListener("click", closeRSVP);
 
-    // ESC close
     window.addEventListener("keydown", function(e){
       if (e && e.key === "Escape") closeRSVP();
     });
 
-    // Navigation
+    // Find
     $("findBtn").addEventListener("click", startFind);
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
+    // Pick
     $("pickBackBtn").addEventListener("click", goBackOne);
-
     $("pickNotMeBtn").addEventListener("click", function(){
-      // most likely nickname / wrong spelling / not invited
       navStack = [];
       go("stepContact", "RSVP", "Help", { noHistory:false });
     });
 
+    // Coming
     $("comingBackBtn").addEventListener("click", goBackOne);
-    $("transpoBackBtn").addEventListener("click", goBackOne);
-    $("phoneBackBtn").addEventListener("click", goBackOne);
-    $("notesBackBtn").addEventListener("click", goBackOne);
-
-    // Choice buttons (active state)
-    $("btnYes").addEventListener("click", function(){
-      state.status = "Attending";
-      $("btnYes").classList.add("active");
-      $("btnNo").classList.remove("active");
-      clearErr($("comingErr"));
-
-      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
-      maxSeats = Math.max(1, maxSeats);
-
-      if (maxSeats <= 1) {
-        hide($("attendingBox"));
-        state.attendingCount = 1;
-        state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
-      } else {
-        show($("attendingBox"));
-        state.attendingCount = parseInt($("countSelect").value, 10) || 1;
-        state.attendingCount = Math.max(1, Math.min(state.attendingCount, maxSeats));
-        buildAttendeeInputs(state.attendingCount);
-      }
-    });
-
-    $("btnNo").addEventListener("click", function(){
-      state.status = "Declined";
-      $("btnNo").classList.add("active");
-      $("btnYes").classList.remove("active");
-      hide($("attendingBox"));
-      clearErr($("comingErr"));
-    });
-
-    $("countSelect").addEventListener("change", function(){
-      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : CONFIG.maxSeatsCap;
-      maxSeats = Math.max(1, maxSeats);
-
-      var n = parseInt($("countSelect").value, 10) || 1;
-      n = Math.max(1, Math.min(n, maxSeats));
-      state.attendingCount = n;
-      buildAttendeeInputs(n);
-    });
-
     $("comingNextBtn").addEventListener("click", comingNext);
 
+    $("btnYes").addEventListener("click", setYesFlow_);
+    $("btnNo").addEventListener("click", setNoFlow_);
+
+    $("countSelect").addEventListener("change", onPartyCountChange_);
+
+    // Transpo
+    $("transpoBackBtn").addEventListener("click", goBackOne);
     $("transpoYes").addEventListener("click", function(){
       state.transportation = "Yes";
       $("transpoYes").classList.add("active");
       $("transpoNo").classList.remove("active");
       clearErr($("transpoErr"));
     });
-
     $("transpoNo").addEventListener("click", function(){
       state.transportation = "No";
       $("transpoNo").classList.add("active");
       $("transpoYes").classList.remove("active");
       clearErr($("transpoErr"));
     });
-
     $("transpoNextBtn").addEventListener("click", transpoNext);
 
+    // Phone
+    $("phoneBackBtn").addEventListener("click", goBackOne);
     $("phoneInput").addEventListener("input", function(){
       setPhoneFromInput();
       hide($("phoneErr"));
     });
-
     $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
     $("phoneNextBtn").addEventListener("click", phoneNext);
 
+    // Notes
+    $("notesBackBtn").addEventListener("click", goBackOne);
     $("submitBtn").addEventListener("click", submitRSVP);
 
     // Contact lines
