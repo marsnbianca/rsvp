@@ -43,10 +43,7 @@
     }
 
     html, body { height: 100%; }
-    html{
-      /* Responsive base type size */
-      font-size: clamp(15px, 1.6vw, 18px);
-    }
+    html{ font-size: clamp(15px, 1.6vw, 18px); }
 
     body{
       margin: 0;
@@ -54,8 +51,6 @@
       background: transparent;
       color: var(--text);
       text-align: center;
-
-      /* default: 10% closer-ish */
       letter-spacing: -0.01em;
     }
 
@@ -78,38 +73,46 @@
       box-shadow: var(--shadow);
       overflow: hidden;
       position: relative;
+
+      /* max height + internal scroll */
+      max-height: min(92vh, 44rem);
+      display: flex;
+      flex-direction: column;
     }
 
     header{
+      flex: 0 0 auto;
       padding:
-        clamp(1.25rem, 4vw, 1.6rem)   /* top: keeps M+B away from modal edge */
-        clamp(1.1rem, 3vw, 1.3rem)    /* left / right */
-        clamp(0.35rem, 1.5vw, 0.55rem);   /* bottom: tighter under Oct 15, 2027 */
+        clamp(1.25rem, 4vw, 1.6rem)
+        clamp(1.1rem, 3vw, 1.3rem)
+        clamp(0.5rem, 2vw, 0.7rem);
       border-bottom: 0.0625rem solid var(--border);
       position: relative;
     }
 
-    
     .title{
       margin: 0;
-      font-size: clamp(1.6rem, 6vw, 2.3rem); /* header a bit bigger */
-      line-height: 1.02;                     /* DO NOT go below ~1.0 */
+      font-size: clamp(1.8rem, 6vw, 2.3rem);
+      line-height: 1.02;
       padding: 0 clamp(2.5rem, 6vw, 2.75rem);
-      font-family: "Mr1", ui-sans-serif, system-ui;
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       font-weight: 600;
       letter-spacing: -0.02em;
     }
-    
+
     .subtitle{
-      /* THIS is the key change */
-      margin-top: clamp(0.12rem, 0.8vw, 0.25rem); /* MUCH closer */
+      margin-top: clamp(0.12rem, 0.8vw, 0.25rem);
       color: var(--muted);
       font-size: clamp(0.78rem, 2.4vw, 0.9rem);
       line-height: 1.35;
       padding: 0 clamp(2.5rem, 6vw, 2.75rem);
       letter-spacing: -0.01em;
-    }
+      white-space: normal;
 
+      /* NEW: subtitle also Mr1 */
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
+    }
 
     .xBtn{
       position: absolute;
@@ -133,6 +136,9 @@
     .xHidden{ display:none !important; }
 
     main{
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       padding: clamp(0.9rem, 3vw, 1.1rem) clamp(0.95rem, 3vw, 1.15rem) clamp(1rem, 3.2vw, 1.25rem);
     }
 
@@ -149,6 +155,11 @@
       margin-bottom: clamp(0.25rem, 1.2vw, 0.35rem);
       display:block;
       text-align: center;
+      letter-spacing: -0.01em;
+
+      /* NEW: labels also Mr1 */
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
 
     input, textarea, select{
@@ -157,12 +168,20 @@
       border: 0.0625rem solid var(--border);
       border-radius: clamp(0.7rem, 2.5vw, 0.8rem);
       padding: clamp(0.7rem, 2.4vw, 0.85rem) clamp(0.7rem, 2.4vw, 0.85rem);
-      font-size: clamp(0.92rem, 2.8vw, 1rem);
+      font-size: clamp(0.98rem, 2.9vw, 1.08rem);
       outline: none;
       background: #fff;
       color: var(--text);
       text-align: center;
-      letter-spacing: -0.01em;
+
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
+      letter-spacing: -0.03em;
+    }
+
+    input::placeholder, textarea::placeholder{
+      letter-spacing: -0.02em;
+      opacity: 0.75;
     }
 
     textarea{
@@ -170,6 +189,7 @@
       resize: vertical;
     }
 
+    /* NEW: hints/help also Mr1 */
     .help{
       font-size: clamp(0.75rem, 2.2vw, 0.85rem);
       color: var(--muted);
@@ -178,6 +198,9 @@
       text-align: center;
       max-width: 26.25rem;
       letter-spacing: -0.01em;
+
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
 
     .err{
@@ -188,6 +211,10 @@
       text-align: center;
       max-width: 26.25rem;
       letter-spacing: -0.01em;
+
+      /* NEW: errors also Mr1 (optional, but consistent) */
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
 
     .hidden{ display:none !important; }
@@ -205,6 +232,10 @@
       transition: background 160ms ease, transform 120ms ease, opacity 160ms ease;
       letter-spacing: -0.01em;
       min-height: clamp(2.5rem, 8vw, 2.85rem);
+
+      /* NEW: buttons also Mr1 */
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
     .btn:active{ transform: translateY(0.0625rem); }
 
@@ -238,8 +269,11 @@
       text-align: center;
       display: block;
       transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 120ms ease;
-      letter-spacing: -0.01em;
-      font-size: clamp(0.92rem, 2.7vw, 1rem);
+      font-size: clamp(1rem, 3vw, 1.1rem);
+
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
+      letter-spacing: -0.03em;
     }
     .choiceBtn:hover{ background: var(--choiceHover); }
     .choiceBtn:active{ transform: translateY(0.0625rem); }
@@ -256,8 +290,15 @@
       margin-top: clamp(0.75rem, 2.8vw, 0.95rem);
       flex-wrap: wrap;
       width: 100%;
+
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.92) 35%, rgba(255,255,255,1));
+      padding-top: clamp(0.5rem, 2vw, 0.75rem);
+      padding-bottom: clamp(0.25rem, 1.2vw, 0.4rem);
     }
 
+    /* NEW: contact line also Mr1 */
     .contactLine{
       margin-top: clamp(0.75rem, 2.8vw, 0.95rem);
       font-size: clamp(0.75rem, 2.2vw, 0.85rem);
@@ -266,6 +307,9 @@
       text-align: center;
       max-width: 26.25rem;
       letter-spacing: -0.01em;
+
+      font-family: "Mr1", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-weight: 400;
     }
 
     #loadingMask{
@@ -301,7 +345,6 @@
 
       <header>
         <h1 class="title" id="headerTitle">Mars + Bianca</h1>
-        <!-- 2 lines via <br> -->
         <p class="subtitle" id="headerSubtitle">Nuuk Taal<br>Oct 15, 2027</p>
         <button class="xBtn" id="xBtn" type="button" aria-label="Close">×</button>
       </header>
@@ -421,7 +464,7 @@
 
         <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
-          <div style="font-size:1rem; font-weight:700;">Thank you!</div>
+          <div class="help" style="font-size:1rem; font-weight:700; color: var(--text);">Thank you!</div>
           <div class="help" id="thanksLine">RSVP received.</div>
           <div class="help">See you there. 💛</div>
           <div class="contactLine" id="contactLine"></div>
@@ -433,7 +476,7 @@
 
         <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
-          <div style="font-size:1rem; font-weight:700;">Thank you!</div>
+          <div class="help" style="font-size:1rem; font-weight:700; color: var(--text);">Thank you!</div>
           <div class="help">We’ll miss you — sorry we won’t see you there.</div>
           <div class="contactLine" id="contactLine2"></div>
 
@@ -444,7 +487,7 @@
 
         <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
-          <div style="font-size:1rem; font-weight:600;">RSVP already received</div>
+          <div class="help" style="font-size:1rem; font-weight:600; color: var(--text);">RSVP already received</div>
           <div class="help">To update, please contact Bianca &amp; Mars (or the coordinator).</div>
           <div class="contactLine" id="contactLine3"></div>
 
@@ -452,6 +495,8 @@
             <button class="btn secondary" id="lockedCloseBtn" type="button">Close</button>
           </div>
         </section>
+
+        <div id="scrollAnchor" style="height:0; width:100%;"></div>
       </main>
     </div>
   </div>
@@ -473,6 +518,17 @@
 
     function showLoading(on){
       $("loadingMask").classList.toggle("show", !!on);
+    }
+
+    function scrollMainTo_(el) {
+      try {
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "end" });
+      } catch (e) {}
+    }
+
+    function scrollToBottom_() {
+      scrollMainTo_($("scrollAnchor"));
     }
 
     function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
@@ -846,6 +902,8 @@
 
         state.attendingCount = 1;
         state.attendees = [ titleCaseName_(state.selected.display_name || state.selected.name || "") ];
+
+        scrollToBottom_();
         return;
       }
 
@@ -856,6 +914,8 @@
 
       state.attendingCount = 0;
       state.attendees = [];
+
+      scrollMainTo_($("partyCountBox"));
     }
 
     function setNoFlow_(){
@@ -870,6 +930,8 @@
 
       state.attendingCount = 0;
       state.attendees = [];
+
+      scrollToBottom_();
     }
 
     function onPartyCountChange_(){
@@ -879,6 +941,8 @@
       state.attendingCount = n;
       show($("guestNamesBox"));
       buildAttendeeInputs(n);
+
+      scrollMainTo_($("guestNamesBox"));
     }
 
     function comingNext(){
