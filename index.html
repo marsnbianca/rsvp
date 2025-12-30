@@ -491,7 +491,7 @@
 
   <script>
     var CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbwCxTjp694QikAYG7ocEHalKYXDOtd9OdFHEpw3ptdn_9dB0jnpu62OnnRPKnMOu1fdUQ/execc",
+      webAppUrl: "https://script.google.com/macros/s/AKfycbwCxTjp694QikAYG7ocEHalKYXDOtd9OdFHEpw3ptdn_9dB0jnpu62OnnRPKnMOu1fdUQ/exec",
       maxSeatsCap: 4,
       contactLineText:
         "Need help? Contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
@@ -595,27 +595,34 @@
     var CLIENT_ID = getClientId_();
 
     function postJson(action, payload){
-      var base = Object.assign(
-        { action: action, client_id: CLIENT_ID, hp: String($("hpInput").value || "").trim() },
-        payload || {}
-      );
+  var base = Object.assign(
+    { action: action, client_id: CLIENT_ID, hp: String($("hpInput").value || "").trim() },
+    payload || {}
+  );
 
-      showLoading(true);
-      return fetch(CONFIG.webAppUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(base)
-      }).then(function(r){
-        return r.text().then(function(t){
-          showLoading(false);
-          try { return JSON.parse(t); }
-          catch(e){ return { ok:false, error:"Bad response from server." }; }
-        });
-      }).catch(function(err){
-        showLoading(false);
-        throw err;
-      });
-    }
+  showLoading(true);
+  return fetch(CONFIG.webAppUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(base)
+  }).then(function(r){
+    return r.text().then(function(t){
+      showLoading(false);
+
+      // Helpful: surface HTML error pages, not just "network error"
+      if (!t) return { ok:false, error:"Empty response from server." };
+
+      try { return JSON.parse(t); }
+      catch(e){
+        // If Apps Script returns an HTML auth page or error page
+        return { ok:false, error:"Server returned a non-JSON response. Check web app access (Anyone) and deployment URL." };
+      }
+    });
+  }).catch(function(err){
+    showLoading(false);
+    return { ok:false, error:"Network error. Please try again." };
+  });
+}
 
     function getParentOrigin_(){
       try {
@@ -813,6 +820,49 @@
       go("stepFind", { noHistory: false });
     }
 
+    function adaptFindResponse_(res){
+  // Backend A (newer UI format): { matches: [{ invite_id, display_name, max_seats }] }
+  // Backend B (older rowIndex format): { matches: [{ rowIndex, invitee_fullname, seats }] }
+  var matches = (res && res.matches) ? res.matches : [];
+
+  return matches.map(function(m){
+    var inviteId = m.invite_id || m.id || m.key || m.rowIndex;
+    var displayName = m.display_name || m.name || m.invitee_fullname || "";
+    var maxSeats = Number(m.max_seats || m.seats || 1) || 1;
+
+    return {
+      invite_id: String(inviteId),
+      display_name: displayName,
+      max_seats: maxSeats
+    };
+  });
+}
+
+  function adaptGetResponse_(res){
+    // Backend A: { locked, invite: {...} }
+    // Backend B: returns invite fields at top-level (invitee_fullname, seats, status)
+    if (!res) return { ok:false, error:"Empty response." };
+  
+    if (res.invite) return res; // already in format A
+  
+    // Convert format B to format A-like shape
+    var maxSeats = Number(res.max_seats || res.seats || 1) || 1;
+  
+    return {
+      ok: (res.ok !== false),
+      locked: !!res.locked || (String(res.status || "").toLowerCase() === "locked"),
+      invite: {
+        display_name: res.display_name || res.invitee_fullname || "",
+        max_seats: maxSeats,
+        status: res.status || "",
+        attending_count: res.attending_count || 0,
+        phone: res.phone || "",
+        transportation: res.transportation || "",
+        notes: res.notes || ""
+      }
+    };
+  }
+
     function startFind(){
       clearErr($("findErr"));
       var q = normalizeSpaces_($("nameInput").value);
@@ -828,7 +878,7 @@
             return;
           }
 
-          var matches = res.matches || [];
+          var matches = adaptFindResponse_(res);
           if (!matches.length){
             showErr($("findErr"), "No match found. Please try a different name.");
             return;
@@ -846,36 +896,38 @@
     }
 
     function selectMatch(match){
-      var inviteId = match.invite_id || match.id || match.key;
-      if (!inviteId){ showErr($("pickErr"), "Missing invite ID. Please try again."); return; }
+  var inviteId = match.invite_id || match.id || match.key || match.rowIndex;
+  if (!inviteId){ showErr($("pickErr"), "Missing invite ID. Please try again."); return; }
 
-      state.inviteId = inviteId;
+  state.inviteId = inviteId;
 
-      postJson("get", { invite_id: inviteId })
-        .then(function(res){
-          if (!res || res.ok === false){
-            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load. Please try again.");
-            return;
-          }
+  postJson("get", { invite_id: inviteId, rowIndex: Number(inviteId) || "" })
+    .then(function(res){
+      res = adaptGetResponse_(res);
 
-          if (res.locked){
-            go("stepLocked");
-            return;
-          }
+      if (!res || res.ok === false){
+        showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load. Please try again.");
+        return;
+      }
 
-          state.selected = res.invite || match;
+      if (res.locked){
+        go("stepLocked");
+        return;
+      }
 
-          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
-          maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
-          state.maxSeats = maxSeats;
+      state.selected = res.invite || match;
 
-          resetComingUI_();
-          go("stepComing");
-        })
-        .catch(function(){
-          showErr($("pickErr"), "Network error. Please try again.");
-        });
-    }
+      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
+      maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
+      state.maxSeats = maxSeats;
+
+      resetComingUI_();
+      go("stepComing");
+    })
+    .catch(function(){
+      showErr($("pickErr"), "Network error. Please try again.");
+    });
+}
 
     function setYesFlow_(){
       state.status = "Attending";
@@ -1011,6 +1063,7 @@
 
       var payload = {
         invite_id: state.inviteId,
+        rowIndex: Number(state.inviteId) || "",
         status: state.status,
         attending_count: state.status === "Attending" ? state.attendingCount : 0,
         phone: state.phoneVisible || "",
