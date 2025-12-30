@@ -89,7 +89,6 @@
       position: relative;
     }
 
-    /* TITLE ONLY = Mr2 */
     .title{
       margin: 0;
       font-size: clamp(1.8rem, 6vw, 2.3rem);
@@ -100,7 +99,6 @@
       letter-spacing: -0.04em;
     }
 
-    /* SUBTITLE = system */
     .subtitle{
       margin-top: clamp(0.12rem, 0.8vw, 0.25rem);
       color: var(--muted);
@@ -340,7 +338,6 @@
       <main>
         <input id="hpInput" type="text" tabindex="-1" autocomplete="off" style="display:none;" />
 
-        <!-- FIND -->
         <section id="stepFind" class="col">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="nameInput">Name</label>
@@ -354,7 +351,6 @@
           </div>
         </section>
 
-        <!-- PICK -->
         <section id="stepPick" class="col hidden">
           <div class="help" id="pickSummary" style="margin-top:0;"></div>
           <div id="pickList" class="col" style="width:100%;"></div>
@@ -366,7 +362,6 @@
           </div>
         </section>
 
-        <!-- CONTACT -->
         <section id="stepContact" class="col hidden">
           <div style="font-size:1rem; font-weight:600;">Can’t find your invite?</div>
           <div class="help">Please contact Bianca &amp; Mars (or the coordinator) so we can help.</div>
@@ -377,7 +372,6 @@
           </div>
         </section>
 
-        <!-- COMING -->
         <section id="stepComing" class="col hidden">
           <div class="col" style="width:100%;">
             <div class="help" style="margin-top:0;">Will you be attending?</div>
@@ -405,7 +399,6 @@
           </div>
         </section>
 
-        <!-- TRANSPO -->
         <section id="stepTranspo" class="col hidden">
           <div class="help" style="margin-top:0;">Transportation needed?</div>
 
@@ -420,7 +413,6 @@
           </div>
         </section>
 
-        <!-- PHONE -->
         <section id="stepPhone" class="col hidden">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="phoneInput">Phone number</label>
@@ -435,7 +427,6 @@
           </div>
         </section>
 
-        <!-- NOTES -->
         <section id="stepNotes" class="col hidden">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="notesInput">Notes (optional)</label>
@@ -450,7 +441,6 @@
           <div id="submitErr" class="err hidden"></div>
         </section>
 
-        <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
           <div style="font-size:1rem; font-weight:700;">Thank you!</div>
           <div class="help" id="thanksLine">RSVP received.</div>
@@ -462,7 +452,6 @@
           </div>
         </section>
 
-        <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
           <div style="font-size:1rem; font-weight:700;">Thank you!</div>
           <div class="help">We’ll miss you — sorry we won’t see you there.</div>
@@ -473,7 +462,6 @@
           </div>
         </section>
 
-        <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
           <div style="font-size:1rem; font-weight:600;">RSVP already received</div>
           <div class="help">To update, please contact Bianca &amp; Mars (or the coordinator).</div>
@@ -491,7 +479,7 @@
 
   <script>
     var CONFIG = {
-      webAppUrl: "https://script.google.com/macros/s/AKfycbwCxTjp694QikAYG7ocEHalKYXDOtd9OdFHEpw3ptdn_9dB0jnpu62OnnRPKnMOu1fdUQ/exec",
+      webAppUrl: "PASTE_YOUR_EXEC_URL_HERE",
       maxSeatsCap: 4,
       contactLineText:
         "Need help? Contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
@@ -595,34 +583,32 @@
     var CLIENT_ID = getClientId_();
 
     function postJson(action, payload){
-  var base = Object.assign(
-    { action: action, client_id: CLIENT_ID, hp: String($("hpInput").value || "").trim() },
-    payload || {}
-  );
+      var base = Object.assign(
+        { action: action, client_id: CLIENT_ID, hp: String($("hpInput").value || "").trim() },
+        payload || {}
+      );
 
-  showLoading(true);
-  return fetch(CONFIG.webAppUrl, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(base)
-  }).then(function(r){
-    return r.text().then(function(t){
-      showLoading(false);
+      showLoading(true);
+      return fetch(CONFIG.webAppUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(base)
+      }).then(function(r){
+        return r.text().then(function(t){
+          showLoading(false);
 
-      // Helpful: surface HTML error pages, not just "network error"
-      if (!t) return { ok:false, error:"Empty response from server." };
+          if (!t) return { ok:false, error:"Empty response from server." };
 
-      try { return JSON.parse(t); }
-      catch(e){
-        // If Apps Script returns an HTML auth page or error page
-        return { ok:false, error:"Server returned a non-JSON response. Check web app access (Anyone) and deployment URL." };
-      }
-    });
-  }).catch(function(err){
-    showLoading(false);
-    return { ok:false, error:"Network error. Please try again." };
-  });
-}
+          try { return JSON.parse(t); }
+          catch(e){
+            return { ok:false, error:"Server returned a non-JSON response. Check web app access (Anyone) and deployment URL." };
+          }
+        });
+      }).catch(function(){
+        showLoading(false);
+        return { ok:false, error:"Network error. Please try again." };
+      });
+    }
 
     function getParentOrigin_(){
       try {
@@ -741,10 +727,9 @@
         });
 
         inp.addEventListener("blur", function(e){
-          var idx = parseInt(e.target.dataset.idx, 10);
           var fixed = titleCaseName_(e.target.value);
           e.target.value = fixed;
-          state.attendees[idx] = fixed;
+          state.attendees[parseInt(e.target.dataset.idx, 10)] = fixed;
         });
 
         wrap.appendChild(lab);
@@ -821,52 +806,56 @@
     }
 
     function adaptFindResponse_(res){
-  // Backend A (newer UI format): { matches: [{ invite_id, display_name, max_seats }] }
-  // Backend B (older rowIndex format): { matches: [{ rowIndex, invitee_fullname, seats }] }
-  var matches = (res && res.matches) ? res.matches : [];
+      var matches = (res && res.matches) ? res.matches : [];
 
-  return matches.map(function(m){
-    var inviteId = m.invite_id || m.id || m.key || m.rowIndex;
-    var displayName = m.display_name || m.name || m.invitee_fullname || "";
-    var maxSeats = Number(m.max_seats || m.seats || 1) || 1;
+      return matches.map(function(m){
+        var inviteId = m.invite_id || m.id || m.key || m.rowIndex;
+        var displayName = m.display_name || m.name || m.invitee_fullname || "";
+        var maxSeats = Number(m.max_seats || m.seats || 1) || 1;
 
-    return {
-      invite_id: String(inviteId),
-      display_name: displayName,
-      max_seats: maxSeats
-    };
-  });
-}
+        return {
+          invite_id: String(inviteId),
+          display_name: displayName,
+          max_seats: maxSeats
+        };
+      });
+    }
 
-  function adaptGetResponse_(res){
-    // Backend A: { locked, invite: {...} }
-    // Backend B: returns invite fields at top-level (invitee_fullname, seats, status)
-    if (!res) return { ok:false, error:"Empty response." };
-  
-    if (res.invite) return res; // already in format A
-  
-    // Convert format B to format A-like shape
-    var maxSeats = Number(res.max_seats || res.seats || 1) || 1;
-  
-    return {
-      ok: (res.ok !== false),
-      locked: !!res.locked || (String(res.status || "").toLowerCase() === "locked"),
-      invite: {
-        display_name: res.display_name || res.invitee_fullname || "",
-        max_seats: maxSeats,
-        status: res.status || "",
-        attending_count: res.attending_count || 0,
-        phone: res.phone || "",
-        transportation: res.transportation || "",
-        notes: res.notes || ""
-      }
-    };
-  }
+    function adaptGetResponse_(res){
+      if (!res) return { ok:false, error:"Empty response." };
+      if (res.invite) return res;
+
+      var maxSeats = Number(res.max_seats || res.seats || 1) || 1;
+
+      return {
+        ok: (res.ok !== false),
+        locked: !!res.locked || (String(res.status || "").toLowerCase() === "locked"),
+        invite: {
+          display_name: res.display_name || res.invitee_fullname || "",
+          max_seats: maxSeats,
+          status: res.status || "",
+          attending_count: res.attending_count || 0,
+          phone: res.phone || "",
+          transportation: res.transportation || "",
+          notes: res.notes || ""
+        }
+      };
+    }
 
     function startFind(){
       clearErr($("findErr"));
       var q = normalizeSpaces_($("nameInput").value);
-      if (!q){ showErr($("findErr"), "Please enter your name."); return; }
+
+      if (!q){
+        showErr($("findErr"), "Please enter your name.");
+        return;
+      }
+
+      // NEW: require at least 3 characters (after trimming)
+      if (q.length < 3){
+        showErr($("findErr"), "Please type at least 3 characters.");
+        return;
+      }
 
       $("findBtn").disabled = true;
       postJson("find", { name: q })
@@ -888,46 +877,42 @@
           renderPickList(matches);
           clearErr($("pickErr"));
           go("stepPick");
-        })
-        .catch(function(){
-          $("findBtn").disabled = false;
-          showErr($("findErr"), "Network error. Please try again.");
         });
     }
 
     function selectMatch(match){
-  var inviteId = match.invite_id || match.id || match.key || match.rowIndex;
-  if (!inviteId){ showErr($("pickErr"), "Missing invite ID. Please try again."); return; }
-
-  state.inviteId = inviteId;
-
-  postJson("get", { invite_id: inviteId, rowIndex: Number(inviteId) || "" })
-    .then(function(res){
-      res = adaptGetResponse_(res);
-
-      if (!res || res.ok === false){
-        showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load. Please try again.");
+      var inviteId = match.invite_id || match.id || match.key || match.rowIndex;
+      if (!inviteId){
+        showErr($("pickErr"), "Missing invite ID. Please try again.");
         return;
       }
 
-      if (res.locked){
-        go("stepLocked");
-        return;
-      }
+      state.inviteId = inviteId;
 
-      state.selected = res.invite || match;
+      postJson("get", { invite_id: inviteId, rowIndex: Number(inviteId) || "" })
+        .then(function(res){
+          res = adaptGetResponse_(res);
 
-      var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
-      maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
-      state.maxSeats = maxSeats;
+          if (!res || res.ok === false){
+            showErr($("pickErr"), (res && res.error) ? res.error : "Unable to load. Please try again.");
+            return;
+          }
 
-      resetComingUI_();
-      go("stepComing");
-    })
-    .catch(function(){
-      showErr($("pickErr"), "Network error. Please try again.");
-    });
-}
+          if (res.locked){
+            go("stepLocked");
+            return;
+          }
+
+          state.selected = res.invite || match;
+
+          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
+          maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
+          state.maxSeats = maxSeats;
+
+          resetComingUI_();
+          go("stepComing");
+        });
+    }
 
     function setYesFlow_(){
       state.status = "Attending";
@@ -1097,11 +1082,6 @@
 
           setText($("thanksLine"), "Recorded for " + state.attendingCount + (state.attendingCount === 1 ? " guest." : " guests."));
           go("stepThanks");
-        })
-        .catch(function(){
-          $("submitBtn").disabled = false;
-          $("comingNextBtn").disabled = false;
-          showErr($("submitErr"), "Network error. Please try again.");
         });
     }
 
