@@ -845,11 +845,8 @@
     function startFind(){
       clearErr($("findErr"));
       var q = normalizeSpaces_($("nameInput").value);
-
-      if (!q){
-        showErr($("findErr"), "Please enter your name.");
-        return;
-      }
+if (!q){ showErr($("findErr"), "Please enter your name."); return; }
+if (q.length < 3){ showErr($("findErr"), "Please type at least 3 characters."); return; }
 
       // NEW: require at least 3 characters (after trimming)
       if (q.length < 3){
