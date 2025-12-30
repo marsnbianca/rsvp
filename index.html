@@ -567,16 +567,26 @@
 
     // Close in Readymag embed: always message parent/top with "*"
     function closeRSVP(){
-      try { window.parent.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
-      try { window.top.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
+  // If embedded (Readymag iframe), ask parent to close and do NOT redirect anywhere.
+  if (window.parent && window.parent !== window) {
+    try { window.parent.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
+    try { window.top.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
+    try { window.parent.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
+    try { window.top.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
+    return;
+  }
 
-      // Extra fallback message some overlays use
-      try { window.parent.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
-      try { window.top.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
-
-      // Final fallback (direct open in tab)
-      try { window.location.href = "/"; } catch (e) {}
+  // Standalone fallback (opened directly): go back if possible, else stay within /rsvp/
+  try {
+    if (window.history && window.history.length > 1) {
+      window.history.back();
+      return;
     }
+  } catch (e) {}
+
+  // Fallback that won't 404: go to the current folder ("/rsvp/")
+  window.location.href = "./";
+}
 
     // Double click outside modal closes
     $("overlay").addEventListener("dblclick", function(e){
