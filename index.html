@@ -169,8 +169,15 @@
       color: var(--text);
       text-align: center;
       letter-spacing: -0.01em;
+
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       font-weight: 400;
+    }
+
+    input::placeholder, textarea::placeholder{
+      letter-spacing: -0.01em;
+      opacity: 0.75;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
 
     textarea{
@@ -215,6 +222,7 @@
       transition: background 160ms ease, transform 120ms ease, opacity 160ms ease;
       letter-spacing: -0.01em;
       min-height: clamp(2.5rem, 8vw, 2.85rem);
+
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       font-weight: 400;
     }
@@ -235,15 +243,18 @@
     }
     .btn.secondary:hover{ background: var(--secondaryHover); }
 
-    .btn:disabled{ opacity: .55; cursor: not-allowed; }
+    .btn:disabled{
+      opacity: .55;
+      cursor: not-allowed;
+    }
 
     .choiceBtn{
       width: min(clamp(15rem, 70vw, 20rem), 100%);
       border-radius: clamp(0.8rem, 2.8vw, 0.95rem);
       padding: clamp(0.72rem, 2.4vw, 0.88rem) clamp(0.85rem, 2.6vw, 0.95rem);
-      border: 0.0625rem solid var(--border);
-      background: #fff;
-      color: var(--text);
+      border: 0.0625rem solid var(--choiceBorder);
+      background: var(--choiceBg);
+      color: var(--choiceText);
       text-align: center;
       display: block;
       transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 120ms ease;
@@ -252,12 +263,12 @@
       font-weight: 400;
       letter-spacing: -0.01em;
     }
-    .choiceBtn:hover{ background: #f9fafb; }
+    .choiceBtn:hover{ background: var(--choiceHover); }
     .choiceBtn:active{ transform: translateY(0.0625rem); }
     .choiceBtn.active{
-      background: var(--text);
-      color: #fff;
-      border-color: var(--text);
+      background: var(--choiceActiveBg);
+      color: var(--choiceActiveText);
+      border-color: var(--choiceActiveBorder);
     }
 
     .footer{
@@ -325,6 +336,7 @@
       <main>
         <input id="hpInput" type="text" tabindex="-1" autocomplete="off" style="display:none;" />
 
+        <!-- FIND -->
         <section id="stepFind" class="col">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="nameInput">Name</label>
@@ -338,6 +350,7 @@
           </div>
         </section>
 
+        <!-- PICK -->
         <section id="stepPick" class="col hidden">
           <div class="help" id="pickSummary" style="margin-top:0;"></div>
           <div id="pickList" class="col" style="width:100%;"></div>
@@ -349,6 +362,7 @@
           </div>
         </section>
 
+        <!-- CONTACT -->
         <section id="stepContact" class="col hidden">
           <div style="font-size:1rem; font-weight:600;">Can’t find your invite?</div>
           <div class="help">Please contact Bianca &amp; Mars (or the coordinator) so we can help.</div>
@@ -359,6 +373,7 @@
           </div>
         </section>
 
+        <!-- COMING -->
         <section id="stepComing" class="col hidden">
           <div class="col" style="width:100%;">
             <div class="help" style="margin-top:0;">Will you be attending?</div>
@@ -386,6 +401,7 @@
           </div>
         </section>
 
+        <!-- TRANSPO -->
         <section id="stepTranspo" class="col hidden">
           <div class="help" style="margin-top:0;">Transportation needed?</div>
 
@@ -400,11 +416,12 @@
           </div>
         </section>
 
+        <!-- PHONE -->
         <section id="stepPhone" class="col hidden">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="phoneInput">Phone number</label>
             <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel" placeholder="09XX XXX XXXX" maxlength="13" />
-            <div class="help">You can type without spaces, we’ll format it.</div>
+            <div class="help">You can type without spaces — we’ll format it.</div>
             <div id="phoneErr" class="err hidden"></div>
           </div>
 
@@ -414,6 +431,7 @@
           </div>
         </section>
 
+        <!-- NOTES -->
         <section id="stepNotes" class="col hidden">
           <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <label for="notesInput">Notes (optional)</label>
@@ -428,6 +446,7 @@
           <div id="submitErr" class="err hidden"></div>
         </section>
 
+        <!-- THANKS -->
         <section id="stepThanks" class="col hidden">
           <div style="font-size:1rem; font-weight:700;">Thank you!</div>
           <div class="help" id="thanksLine">RSVP received.</div>
@@ -439,9 +458,10 @@
           </div>
         </section>
 
+        <!-- DECLINED -->
         <section id="stepDeclined" class="col hidden">
           <div style="font-size:1rem; font-weight:700;">Thank you!</div>
-          <div class="help">We’ll miss you, sorry we won’t see you there.</div>
+          <div class="help">We’ll miss you — sorry we won’t see you there.</div>
           <div class="contactLine" id="contactLine2"></div>
 
           <div class="footer">
@@ -449,9 +469,10 @@
           </div>
         </section>
 
+        <!-- LOCKED -->
         <section id="stepLocked" class="col hidden">
           <div style="font-size:1rem; font-weight:600;">RSVP already received</div>
-          <div class="help">To update, please contact Bianca &amp; Mars (or the coordinator).</div>
+          <div class="help">If you need to make changes, please message us at <b>09XX XXX XXXX</b>.</div>
           <div class="contactLine" id="contactLine3"></div>
 
           <div class="footer">
@@ -468,7 +489,8 @@
     var CONFIG = {
       webAppUrl: "https://script.google.com/macros/s/AKfycbwCxTjp694QikAYG7ocEHalKYXDOtd9OdFHEpw3ptdn_9dB0jnpu62OnnRPKnMOu1fdUQ/exec",
       maxSeatsCap: 4,
-      contactLineText: "Need help? Contact Bianca & Mars (or the coordinator) at +63 XXX XXX XXXX (WhatsApp/Viber)."
+      contactLineText:
+        "Need help? Contact Bianca & Mars (or the coordinator) at 09XX XXX XXXX."
     };
 
     function $(id){ return document.getElementById(id); }
@@ -478,15 +500,27 @@
     function showErr(el, msg){ setText(el, msg); show(el); }
     function clearErr(el){ setText(el, ""); hide(el); }
 
-    function showLoading(on){ $("loadingMask").classList.toggle("show", !!on); }
+    function showLoading(on){
+      $("loadingMask").classList.toggle("show", !!on);
+    }
 
-    function scrollMainTo_(el) { try { if (el) el.scrollIntoView({ behavior: "smooth", block: "end" }); } catch (e) {} }
-    function scrollToBottom_() { scrollMainTo_($("scrollAnchor")); }
+    function scrollMainTo_(el) {
+      try {
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "end" });
+      } catch (e) {}
+    }
+
+    function scrollToBottom_() {
+      scrollMainTo_($("scrollAnchor"));
+    }
 
     function normalizeSpaces_(s){ return (s || "").replace(/\s+/g, " ").trim(); }
+
     function titleCaseName_(s){
       s = normalizeSpaces_(s).toLowerCase();
-      var out = "", capNext = true;
+      var out = "";
+      var capNext = true;
       for (var i = 0; i < s.length; i++){
         var ch = s[i];
         if (capNext && /[a-z]/.test(ch)) { out += ch.toUpperCase(); capNext = false; }
@@ -497,9 +531,16 @@
     }
 
     function hideAllSteps(){
-      hide($("stepFind")); hide($("stepPick")); hide($("stepContact")); hide($("stepComing"));
-      hide($("stepTranspo")); hide($("stepPhone")); hide($("stepNotes")); hide($("stepThanks"));
-      hide($("stepDeclined")); hide($("stepLocked"));
+      hide($("stepFind"));
+      hide($("stepPick"));
+      hide($("stepContact"));
+      hide($("stepComing"));
+      hide($("stepTranspo"));
+      hide($("stepPhone"));
+      hide($("stepNotes"));
+      hide($("stepThanks"));
+      hide($("stepDeclined"));
+      hide($("stepLocked"));
     }
 
     function setXVisible_(visible){
@@ -508,6 +549,7 @@
     }
 
     var navStack = [];
+
     function go(stepId, options){
       options = options || {};
       if (!options.noHistory) navStack.push(stepId);
@@ -517,7 +559,10 @@
 
       var endScreens = (stepId === "stepThanks" || stepId === "stepDeclined" || stepId === "stepLocked" || stepId === "stepContact");
       setXVisible_(!endScreens);
+
+      window.scrollTo(0,0);
     }
+
     function goBackOne(){
       if (navStack.length > 0) navStack.pop();
       var prev = navStack.length ? navStack[navStack.length - 1] : "stepFind";
@@ -527,6 +572,8 @@
 
       var endScreens = (prev === "stepThanks" || prev === "stepDeclined" || prev === "stepLocked" || prev === "stepContact");
       setXVisible_(!endScreens);
+
+      window.scrollTo(0,0);
     }
 
     function getClientId_(){
@@ -537,7 +584,9 @@
         v = "c_" + Math.random().toString(16).slice(2) + "_" + Date.now();
         localStorage.setItem(k, v);
         return v;
-      } catch (e) { return "anon"; }
+      } catch (e) {
+        return "anon";
+      }
     }
     var CLIENT_ID = getClientId_();
 
@@ -556,8 +605,11 @@
         return r.text().then(function(t){
           showLoading(false);
           if (!t) return { ok:false, error:"Empty response from server." };
+
           try { return JSON.parse(t); }
-          catch(e){ return { ok:false, error:"Server returned a non-JSON response. Check Apps Script deployment access (Anyone) and URL." }; }
+          catch(e){
+            return { ok:false, error:"Server returned a non-JSON response. Check web app access (Anyone) and deployment URL." };
+          }
         });
       }).catch(function(){
         showLoading(false);
@@ -565,28 +617,25 @@
       });
     }
 
-    // Close in Readymag embed: always message parent/top with "*"
     function closeRSVP(){
-  // If embedded (Readymag iframe), ask parent to close and do NOT redirect anywhere.
-  if (window.parent && window.parent !== window) {
-    try { window.parent.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
-    try { window.top.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
-    try { window.parent.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
-    try { window.top.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
-    return;
-  }
+      // embedded: ask parent to close
+      if (window.parent && window.parent !== window) {
+        try { window.parent.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
+        try { window.top.postMessage("RSVP:CLOSE", "*"); } catch (e) {}
+        try { window.parent.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
+        try { window.top.postMessage({ type:"RSVP:CLOSE" }, "*"); } catch (e) {}
+        return;
+      }
 
-  // Standalone fallback (opened directly): go back if possible, else stay within /rsvp/
-  try {
-    if (window.history && window.history.length > 1) {
-      window.history.back();
-      return;
+      // standalone fallback (GitHub Pages safe)
+      try {
+        if (window.history && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+      } catch (e) {}
+      window.location.href = "./";
     }
-  } catch (e) {}
-
-  // Fallback that won't 404: go to the current folder ("/rsvp/")
-  window.location.href = "./";
-}
 
     // Double click outside modal closes
     $("overlay").addEventListener("dblclick", function(e){
@@ -594,20 +643,27 @@
     });
 
     function digitsOnly(s){ return (s || "").replace(/\D+/g, ""); }
+
     function formatPHVisibleFromDigits(d){
       var x = (d || "").slice(0, 11);
-      var a = x.slice(0, 4), b = x.slice(4, 7), c = x.slice(7, 11);
+      var a = x.slice(0, 4);
+      var b = x.slice(4, 7);
+      var c = x.slice(7, 11);
       var out = a;
       if (b.length) out += " " + b;
       if (c.length) out += " " + c;
       return out.trim();
     }
-    function isValidPHVisible(v){ return /^09\d{2}\s\d{3}\s\d{4}$/.test(String(v || "").trim()); }
+
+    function isValidPHVisible(v){
+      return /^09\d{2}\s\d{3}\s\d{4}$/.test(String(v || "").trim());
+    }
 
     function setPhoneFromInput(){
       var d = digitsOnly($("phoneInput").value);
       if (d.indexOf("63") === 0 && d.length >= 12) d = "0" + d.slice(2);
       if (d.indexOf("9") === 0 && d.length === 10) d = "0" + d;
+
       d = d.slice(0, 11);
       var visible = formatPHVisibleFromDigits(d);
       $("phoneInput").value = visible;
@@ -618,17 +674,18 @@
       var visible = setPhoneFromInput();
       if (!visible) {
         if (showMessage) showErr($("phoneErr"), "Phone number is required.");
-        return { ok:false, visible:visible };
+        return { ok:false, kind:"required", visible:visible };
       }
       if (!isValidPHVisible(visible)) {
         if (showMessage) showErr($("phoneErr"), "Please type 11 digits starting with 09.");
-        return { ok:false, visible:visible };
+        return { ok:false, kind:"invalid", visible:visible };
       }
       clearErr($("phoneErr"));
-      return { ok:true, visible:visible };
+      return { ok:true, kind:"ok", visible:visible };
     }
 
     var state = {
+      matches: [],
       selected: null,
       inviteId: null,
       status: null,
@@ -656,7 +713,6 @@
     function buildAttendeeInputs(n){
       var box = $("attendeeInputs");
       box.innerHTML = "";
-
       for (var i = 0; i < n; i++){
         var wrap = document.createElement("div");
         wrap.style.width = "100%";
@@ -688,7 +744,6 @@
         wrap.appendChild(inp);
         box.appendChild(wrap);
       }
-
       state.attendees = new Array(n).fill("");
     }
 
@@ -732,7 +787,7 @@
     }
 
     function resetState(){
-      state = { selected:null, inviteId:null, status:null, maxSeats:1, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
+      state = { matches:[], selected:null, inviteId:null, status:null, maxSeats:1, attendingCount:0, attendees:[], transportation:"", phoneVisible:"", notes:"" };
 
       $("nameInput").value = "";
       $("notesInput").value = "";
@@ -755,15 +810,21 @@
       setText($("contactLineContact"), CONFIG.contactLineText);
 
       navStack = [];
-      go("stepFind", { noHistory:false });
+      go("stepFind", { noHistory: false });
     }
 
     function startFind(){
       clearErr($("findErr"));
       var q = normalizeSpaces_($("nameInput").value);
 
-      if (!q){ showErr($("findErr"), "Please enter your name."); return; }
-      if (q.length < 3){ showErr($("findErr"), "Please type at least 3 characters."); return; }
+      if (!q){
+        showErr($("findErr"), "Please enter your name.");
+        return;
+      }
+      if (q.length < 3){
+        showErr($("findErr"), "Please type at least 3 characters.");
+        return;
+      }
 
       $("findBtn").disabled = true;
       postJson("find", { name: q })
@@ -793,7 +854,7 @@
     }
 
     function selectMatch(match){
-      var inviteId = match.invite_id;
+      var inviteId = String(match.invite_id || "").trim();
       if (!inviteId){ showErr($("pickErr"), "Missing invite ID. Please try again."); return; }
 
       state.inviteId = inviteId;
@@ -812,8 +873,9 @@
 
           state.selected = res.invite || match;
 
-          var maxSeats = Number(state.selected.max_seats || 1) || 1;
-          maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, maxSeats));
+          var maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : (state.selected && state.selected.maxSeats) ? state.selected.maxSeats : (state.selected && state.selected.max_seats) ? state.selected.max_seats : 1;
+          maxSeats = (state.selected && state.selected.max_seats) ? state.selected.max_seats : (match.max_seats || 1);
+          maxSeats = Math.max(1, Math.min(CONFIG.maxSeatsCap, Number(maxSeats) || 1));
           state.maxSeats = maxSeats;
 
           resetComingUI_();
@@ -826,6 +888,7 @@
 
     function setYesFlow_(){
       state.status = "Attending";
+
       $("btnYes").classList.add("active");
       $("btnNo").classList.remove("active");
       clearErr($("comingErr"));
@@ -835,7 +898,6 @@
         hide($("guestNamesBox"));
 
         state.attendingCount = 1;
-        // auto use invite name as attendee 1 when maxSeats=1
         state.attendees = [ titleCaseName_(state.selected.display_name || "") ];
 
         scrollToBottom_();
@@ -844,15 +906,18 @@
 
       show($("partyCountBox"));
       hide($("guestNamesBox"));
+
       buildCountSelect(state.maxSeats);
 
       state.attendingCount = 0;
       state.attendees = [];
+
       scrollMainTo_($("partyCountBox"));
     }
 
     function setNoFlow_(){
       state.status = "Declined";
+
       $("btnNo").classList.add("active");
       $("btnYes").classList.remove("active");
       clearErr($("comingErr"));
@@ -862,6 +927,7 @@
 
       state.attendingCount = 0;
       state.attendees = [];
+
       scrollToBottom_();
     }
 
@@ -872,6 +938,14 @@
       state.attendingCount = n;
       show($("guestNamesBox"));
       buildAttendeeInputs(n);
+
+      // Auto-fill attendee 1 with invite name (so they don’t retype) but still editable
+      var first = $("attendeeInputs").querySelector('input[data-idx="0"]');
+      if (first && !first.value) {
+        first.value = titleCaseName_(state.selected.display_name || "");
+        state.attendees[0] = first.value;
+      }
+
       scrollMainTo_($("guestNamesBox"));
     }
 
@@ -889,6 +963,9 @@
       }
 
       if (state.maxSeats <= 1) {
+        // Auto set 1 attendee name
+        state.attendingCount = 1;
+        state.attendees = [ titleCaseName_(state.selected.display_name || "") ];
         go("stepTranspo");
         return;
       }
@@ -928,6 +1005,8 @@
     function submitRSVP(){
       clearErr($("submitErr"));
 
+      var attendeesOut = [];
+
       if (state.status === "Attending"){
         if (state.maxSeats <= 1) {
           state.attendingCount = 1;
@@ -943,10 +1022,11 @@
 
         state.attendees = (state.attendees || []).map(function(nm){ return titleCaseName_(nm); }).filter(Boolean);
         state.attendingCount = Math.max(1, Math.min(state.attendingCount || 1, state.maxSeats, state.attendees.length || 1));
+        attendeesOut = state.attendees.slice(0, state.attendingCount);
       } else {
         state.phoneVisible = "";
         state.attendingCount = 0;
-        state.attendees = [];
+        attendeesOut = [];
       }
 
       state.notes = normalizeSpaces_($("notesInput").value);
@@ -958,8 +1038,7 @@
         phone: state.phoneVisible || "",
         transportation: state.status === "Attending" ? (state.transportation || "") : "",
         notes: state.notes || "",
-        // IMPORTANT: send array of strings, Apps Script expects strings
-        attendees: state.status === "Attending" ? state.attendees.slice(0, state.attendingCount) : []
+        attendees: attendeesOut
       };
 
       $("submitBtn").disabled = true;
@@ -995,25 +1074,11 @@
         });
     }
 
-    // Bind close buttons (top + bottom)
-    function bindClose(id){
-      var el = $(id);
-      if (!el) return;
-      el.addEventListener("click", function(e){
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        closeRSVP();
-      }, true);
-      el.addEventListener("touchend", function(e){
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        closeRSVP();
-      }, true);
-    }
-
-    bindClose("xBtn");
-    bindClose("thanksCloseBtn");
-    bindClose("declineCloseBtn");
-    bindClose("lockedCloseBtn");
-    bindClose("contactCloseBtn");
+    $("xBtn").addEventListener("click", closeRSVP);
+    $("thanksCloseBtn").addEventListener("click", closeRSVP);
+    $("declineCloseBtn").addEventListener("click", closeRSVP);
+    $("lockedCloseBtn").addEventListener("click", closeRSVP);
+    $("contactCloseBtn").addEventListener("click", closeRSVP);
 
     window.addEventListener("keydown", function(e){
       if (e && e.key === "Escape") closeRSVP();
@@ -1023,7 +1088,10 @@
     $("nameInput").addEventListener("keydown", function(e){ if (e.key === "Enter") startFind(); });
 
     $("pickBackBtn").addEventListener("click", goBackOne);
-    $("pickNotMeBtn").addEventListener("click", function(){ navStack = []; go("stepContact"); });
+    $("pickNotMeBtn").addEventListener("click", function(){
+      navStack = [];
+      go("stepContact", { noHistory:false });
+    });
 
     $("comingBackBtn").addEventListener("click", goBackOne);
     $("comingNextBtn").addEventListener("click", comingNext);
@@ -1049,7 +1117,10 @@
     $("transpoNextBtn").addEventListener("click", transpoNext);
 
     $("phoneBackBtn").addEventListener("click", goBackOne);
-    $("phoneInput").addEventListener("input", function(){ setPhoneFromInput(); hide($("phoneErr")); });
+    $("phoneInput").addEventListener("input", function(){
+      setPhoneFromInput();
+      hide($("phoneErr"));
+    });
     $("phoneInput").addEventListener("blur", function(){ validatePhone(false); });
     $("phoneNextBtn").addEventListener("click", phoneNext);
 
